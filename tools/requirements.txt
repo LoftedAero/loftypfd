@@ -1,0 +1,4 @@
+# The checks run Lua 5.2 and 5.4 through lupa; the SITL checks read
+# ArduPilot's MAVLink with pymavlink.
+lupa==2.8
+pymavlink==2.4.50

@@ -1,0 +1,8 @@
+# LF everywhere, in the repo and in the working copy on every platform. The
+# vendored design files are checked by an md5 of their LF text, and the radios
+# read either ending, so one ending keeps diffs and hashes honest.
+* text=auto eol=lf
+
+# Binary assets, should any land here.
+*.png binary
+*.wav binary

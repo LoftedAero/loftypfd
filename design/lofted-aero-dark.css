@@ -1,0 +1,145 @@
+/* ============================================================
+   Lofted Aero design system: the dark theme
+   ============================================================
+   The companion to lofted-aero.css. Link it after that sheet and
+   before the app's own:
+
+     lofted-aero.css, lofted-aero-dark.css, app.css
+
+   It applies when <html> carries data-theme="dark", which an inline
+   script sets before first paint (docs/dark-mode.md). With the
+   attribute absent or "light", nothing here applies except the
+   <select> popup rule at the end, which holds in both themes.
+
+   It is a separate file so lofted-aero.css keeps its text unchanged
+   in every app that has not yet taken the dark theme from here. Until
+   now each app carried its own copy of this palette, the same values
+   in all five.
+
+   The ramp is inverted rather than merely darkened: surfaces get
+   lighter as they come closer to the reader, because that is how
+   depth reads without shadows (a shadow on a dark ground is nearly
+   invisible). The brand hues shift too. #F7941D and #4684C5 are tuned
+   for contrast against white, and the deep variants exist to be
+   legible ON white, so on a dark ground the roles swap: the soft
+   tints become dim washes to sit behind text, and the deep tints
+   become the readable text colors.
+
+   The one place outside :root where raw hex belongs: these lines
+   define the tokens rather than use them.
+
+   Contents
+     1. Tokens
+     2. Shared classes that hardcode a light value
+     3. The <select> popup, both themes
+   ============================================================ */
+
+/* ---- 1. Tokens ------------------------------------------- */
+
+:root[data-theme='dark'] {
+  /* Brand, lifted for a dark ground. Orange keeps its hue and gains a
+     little lightness; the deep and soft roles swap purpose. */
+  --la-orange:      #F7A343;
+  --la-orange-deep: #FFB863;   /* now the lighter one: legible on dark */
+  --la-orange-soft: #3A2A14;   /* a wash to sit behind text, not a tint */
+  --la-gold:        #FFD166;
+  --la-blue:        #5B9BD9;
+  --la-blue-deep:   #8FC0EE;
+  --la-blue-soft:   #17293A;
+  /* The app bar. Lighter than the window behind it, because on a dark
+     theme elevation reads as lightness. */
+  --la-charcoal:    #26272B;
+
+  /* Neutrals, the ramp inverted. */
+  --la-ink:         #E8E9ED;
+  --la-ink-2:       #B4B6BE;
+  --la-ink-3:       #8A8D96;
+  --la-line:        #303238;
+  --la-line-strong: #43464E;
+  --la-surface:     #1C1D21;
+  --la-surface-2:   #232429;
+  --la-bg:          #131417;
+
+  /* Semantic. Both are lifted: the light-theme green and red are chosen
+     to be legible on white and go muddy on black. --la-warn follows
+     --la-orange. */
+  --la-ok:  #4ECB71;
+  --la-bad: #FF6B6B;
+
+  /* Shadows do little on a dark ground, so a border carries more of the
+     work. Kept, deepened, for the modal and menus, where a hard edge
+     alone looks pasted on. */
+  --la-shadow-1: 0 1px 2px rgba(0, 0, 0, .40), 0 1px 3px rgba(0, 0, 0, .30);
+  --la-shadow-2: 0 4px 14px rgba(0, 0, 0, .50);
+  --la-shadow-3: 0 18px 48px rgba(0, 0, 0, .65);
+  --la-ring: 0 0 0 3px rgba(91, 155, 217, .40);
+}
+
+/* ---- 2. Shared classes that hardcode a light value -------- */
+
+/* Each is a color lofted-aero.css could not express as a token, so each
+   is repeated here. They go away if the dark theme ever moves into the
+   main sheet. */
+
+/* --la-charcoal does two jobs: it is the app bar's background and it is
+   heading ink. Dark needs those to go opposite ways and a token cannot,
+   so charcoal stays a dark surface (the bar reads correctly in both
+   themes) and its uses as text point at the ink ramp. An app that uses
+   charcoal as text in its own sheet needs the same override there. */
+:root[data-theme='dark'] .la-card__title,
+:root[data-theme='dark'] .la-modal__title {
+  color: var(--la-ink);
+}
+
+/* Status chips: a pale pill with dark text is unreadable inverted. */
+:root[data-theme='dark'] .la-led--ok .la-led__dot {
+  background: #14301C;
+  color: #79E098;
+}
+:root[data-theme='dark'] .la-led--bad .la-led__dot {
+  background: #3A1A1A;
+  color: #FF8F88;
+}
+
+/* The chevron is an inlined SVG with its fill in the data URI, so it
+   cannot follow a token: left alone every dropdown keeps a light-theme
+   gray arrow on a dark field, which is most of why a select reads as
+   switched off. Re-inlined with the one value changed. The fill is
+   --la-ink-2's dark value, and nothing keeps the two in step. */
+:root[data-theme='dark'] .la-select {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%23b4b6be' d='M1.4 0 6 4.6 10.6 0 12 1.4 6 7.4 0 1.4z'/%3E%3C/svg%3E");
+}
+
+/* Disabled controls dim by color rather than opacity, but --la-ink-3 on
+   a dark field reads as text that failed to load rather than text that
+   is not editable yet. One step up the ramp still says "not right now"
+   without hiding the value. */
+:root[data-theme='dark'] .la-input:disabled,
+:root[data-theme='dark'] .la-select:disabled {
+  color: var(--la-ink-2);
+}
+
+/* The primary button. White on the lifted orange is about 2:1, so its
+   label goes dark. It darkens on hover in light, which on a dark ground
+   reads as the button switching off, so here it lightens. (The sheet
+   writes the light hover as a literal, so no token reaches it.) */
+:root[data-theme='dark'] .la-btn--primary {
+  color: #1A1206;
+}
+:root[data-theme='dark'] .la-btn--primary:hover:enabled {
+  background: var(--la-orange-deep);
+  color: var(--la-charcoal);
+}
+
+/* ---- 3. The <select> popup, both themes ------------------- */
+
+/* The list a <select> drops down is drawn by the OS, and it does not
+   reliably follow color-scheme: on Windows it comes up white even on a
+   dark window, and near-white option text then reads as blank rows.
+   Both halves are pinned, through the tokens, so one rule serves both
+   themes. Deliberately not scoped to dark: the same happens the other
+   way on a dark OS showing a light window. */
+.la-select option {
+  background-color: var(--la-surface);
+  color: var(--la-ink);
+}

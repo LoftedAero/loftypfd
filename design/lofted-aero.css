@@ -1,0 +1,832 @@
+/* ============================================================
+   Lofted Aero design system — Electron desktop apps
+   ============================================================
+   Portable. Nothing in this file names the 3BSM; drop it into any
+   Lofted Aero Electron project, link it ahead of that project's own
+   stylesheet, and build the window out of the `.la-*` classes below.
+
+   Brand tokens are the same ones the documentation site uses
+   (lofted-aero-guides/docs/stylesheets/extra.css), captured from
+   loftedaero.com 2026-07-21:
+     Orange   #F7941D  "LOFTED" in the logo; the site action color
+     Blue     #4684C5  "AERO" in the logo
+     Charcoal #2D2D2F  neutral text, header bar
+     Gold     #FFC540  available accent from the Wix ramp
+     Type     Work Sans
+
+   Keep this file in sync across projects rather than forking it, and
+   put anything app-specific in the app's own stylesheet.
+
+   Contents
+     1. Tokens
+     2. Base / reset
+     3. App shell        .la-app .la-appbar .la-main .la-actionbar
+     4. Cards            .la-card
+     5. Fields           .la-field .la-input .la-select .la-slider
+                         .la-switch .la-radio
+     6. Buttons          .la-btn
+     7. Indicators       .la-led .la-readout .la-log
+     8. Modals           .la-modal
+     9. Utilities
+   ============================================================ */
+
+/* ---- 1. Tokens ------------------------------------------- */
+
+:root {
+  /* Brand */
+  --la-orange:      #F7941D;
+  --la-orange-deep: #C05A00;   /* darkened for accessible text on white */
+  --la-orange-soft: #FDEBD4;
+  --la-gold:        #FFC540;
+  --la-blue:        #4684C5;
+  --la-blue-deep:   #2F6EA8;
+  --la-blue-soft:   #E4EDF7;
+  --la-charcoal:    #2D2D2F;
+
+  /* Neutrals — a single gray ramp, so surfaces stay related */
+  --la-ink:         #2D2D2F;
+  --la-ink-2:       #55555B;   /* secondary text */
+  --la-ink-3:       #82828A;   /* labels, hints */
+  --la-line:        #E1E2E6;   /* hairlines, control borders */
+  --la-line-strong: #C9CAD0;
+  --la-surface:     #FFFFFF;   /* cards */
+  --la-surface-2:   #F7F8FA;   /* inset wells, log panes */
+  --la-bg:          #F1F2F5;   /* window background */
+
+  /* Semantic */
+  --la-ok:   #2FAE4E;
+  --la-warn: var(--la-orange);
+  --la-bad:  #D63031;
+
+  /* Type. Work Sans is the brand face; the fallbacks are what the
+     window falls back to when Google Fonts is unreachable, which for a
+     bench PC with no internet is the normal case. */
+  --la-font: 'Work Sans', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --la-font-mono: 'Roboto Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+
+  --la-size-xs:  11px;
+  --la-size-sm:  12px;
+  --la-size-md:  13px;
+  --la-size-lg:  15px;
+  --la-size-xl:  18px;
+
+  /* Space — a 4px scale; use these rather than loose pixel values */
+  --la-space-1: 4px;
+  --la-space-2: 8px;
+  --la-space-3: 12px;
+  --la-space-4: 16px;
+  --la-space-5: 24px;
+  --la-space-6: 32px;
+
+  --la-radius:      8px;
+  --la-radius-sm:   5px;
+  --la-radius-pill: 999px;
+
+  --la-shadow-1: 0 1px 2px rgba(45, 45, 47, .06), 0 1px 3px rgba(45, 45, 47, .05);
+  --la-shadow-2: 0 4px 14px rgba(45, 45, 47, .10);
+  --la-shadow-3: 0 18px 48px rgba(45, 45, 47, .22);
+
+  --la-ring: 0 0 0 3px rgba(70, 132, 197, .35);   /* keyboard focus */
+  --la-ease: 140ms ease;
+
+  --la-appbar-h:    52px;
+  --la-actionbar-h: 60px;
+}
+
+/* ---- 2. Base / reset -------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--la-bg);
+  color: var(--la-ink);
+  font-family: var(--la-font);
+  font-size: var(--la-size-md);
+  line-height: 1.45;
+  /* A desktop window is not a document: nothing here should be
+     selectable by a stray drag, except the places that opt back in. */
+  user-select: none;
+  cursor: default;
+  overflow: hidden;
+}
+
+:focus { outline: none; }
+:focus-visible { box-shadow: var(--la-ring); }
+
+a {
+  color: var(--la-orange-deep);
+  text-decoration: none;
+  font-weight: 600;
+}
+a:hover { text-decoration: underline; }
+
+/* ---- 3. App shell ---------------------------------------- */
+
+/* The window is one column: a fixed bar, a scrolling middle, a fixed
+   bar. Only .la-main ever scrolls, so the controls a user reaches for
+   are always where they left them. */
+/* minmax(0, 1fr) rather than the default auto column: an auto column
+   is sized to the widest row's max-content, so one bar that will not
+   fit widens the whole app past the viewport and clips every row. */
+.la-app {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr);
+  height: 100vh;
+}
+
+.la-appbar {
+  display: flex;
+  align-items: center;
+  gap: var(--la-space-3);
+  min-height: var(--la-appbar-h);
+  padding: 0 var(--la-space-4);
+  background: var(--la-charcoal);
+  color: #fff;
+  box-shadow: var(--la-shadow-1);
+  z-index: 3;
+}
+
+/* The wide logo is gray line-art with an orange/blue wordmark, so on
+   the charcoal bar it sits on a white chip — same treatment as the
+   header on the docs site. */
+.la-appbar__logo {
+  display: block;
+  height: 34px;
+  width: auto;
+  padding: 3px 7px;
+  background: #fff;
+  border-radius: var(--la-radius-sm);
+}
+
+/* The round badge (LoftedAeroIcon.png) instead. At bar height the wide
+   lockup is too small to read; the badge is drawn to work at this size
+   and carries its own white ground, so it needs no chip. */
+.la-appbar__logo--badge {
+  height: 36px;
+  width: 36px;
+  padding: 0;
+  background: none;
+  border-radius: 50%;
+}
+
+.la-appbar__title {
+  font-size: var(--la-size-lg);
+  font-weight: 600;
+  letter-spacing: .01em;
+  white-space: nowrap;
+}
+
+.la-appbar__spacer { flex: 1 1 auto; min-width: var(--la-space-2); }
+
+/* The bar has to survive a narrow window: the status line gives up its
+   width first, then the app name, before anything gets clipped. The
+   logo and the connection controls never shrink. */
+.la-appbar > * { flex: none; }
+.la-appbar .la-readout--wide {
+  flex: 1 1 auto;
+  min-width: 90px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  display: block;                 /* so text-overflow applies */
+  line-height: 30px;
+  text-align: center;
+}
+@media (max-width: 860px) {
+  .la-appbar__title { display: none; }
+}
+
+/* Controls that live on the dark bar need their own light-on-dark
+   treatment; the .la-input / .la-select defaults are tuned for cards. */
+.la-appbar .la-select,
+.la-appbar .la-input {
+  background-color: rgba(255, 255, 255, .10);
+  border-color: rgba(255, 255, 255, .22);
+  color: #fff;
+}
+.la-appbar .la-select:hover:enabled,
+.la-appbar .la-input:hover:enabled { border-color: rgba(255, 255, 255, .45); }
+.la-appbar .la-select option { color: var(--la-ink); }
+
+.la-main {
+  padding: var(--la-space-4);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.la-actionbar {
+  display: flex;
+  align-items: center;
+  gap: var(--la-space-3);
+  min-height: var(--la-actionbar-h);
+  padding: 0 var(--la-space-4);
+  background: var(--la-surface);
+  border-top: 1px solid var(--la-line);
+  z-index: 2;
+}
+.la-actionbar__spacer { flex: 1 1 auto; }
+
+/* ---- 4. Cards -------------------------------------------- */
+
+/* Every panel in the window is a card. Grouping is the whole job the
+   old layout tables were doing by eye. */
+.la-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--la-space-3);
+  padding: var(--la-space-4);
+  background: var(--la-surface);
+  border: 1px solid var(--la-line);
+  border-radius: var(--la-radius);
+  box-shadow: var(--la-shadow-1);
+}
+
+.la-card__title {
+  margin: 0;
+  padding-bottom: var(--la-space-2);
+  border-bottom: 2px solid var(--la-orange);
+  color: var(--la-charcoal);
+  font-size: var(--la-size-lg);
+  font-weight: 700;
+  letter-spacing: .01em;
+}
+
+/* A quieter divider inside a card, for a second group under one title. */
+.la-card__subtitle {
+  margin: var(--la-space-1) 0 0;
+  color: var(--la-ink-3);
+  font-size: var(--la-size-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.la-card__note {
+  margin: 0;
+  color: var(--la-ink-3);
+  font-size: var(--la-size-xs);
+}
+
+/* A message belonging to the control above it — why a value was refused,
+   or what it means. It goes here rather than in the app's status line
+   because a control inside a modal has the status line behind the scrim,
+   where it cannot be read. Empty collapses, so it can be left in place. */
+.la-hint {
+  margin: 0;
+  color: var(--la-ink-3);
+  font-size: var(--la-size-xs);
+  line-height: 1.5;
+}
+.la-hint:empty { display: none; }
+.la-hint--error { color: var(--la-bad); font-weight: 600; }
+
+/* ---- 5. Fields ------------------------------------------- */
+
+/* A field is one labeled control: label on the left, control on the
+   right, so the column of values down a card reads as a column. */
+.la-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--la-space-3);
+  min-height: 30px;
+}
+.la-field__label {
+  color: var(--la-ink-2);
+  font-size: var(--la-size-md);
+}
+.la-field__unit {
+  color: var(--la-ink-3);
+  font-size: var(--la-size-xs);
+}
+/* Label above the control instead of beside it, for wide controls. */
+.la-field--stacked {
+  grid-template-columns: 1fr;
+  align-items: stretch;
+  gap: var(--la-space-2);
+}
+
+.la-input,
+.la-select {
+  height: 30px;
+  padding: 0 var(--la-space-2);
+  border: 1px solid var(--la-line-strong);
+  border-radius: var(--la-radius-sm);
+  background-color: var(--la-surface);
+  color: var(--la-ink);
+  font-family: inherit;
+  font-size: var(--la-size-md);
+  transition: border-color var(--la-ease), box-shadow var(--la-ease);
+}
+.la-input { text-align: center; }
+.la-input--num { width: 5.5em; }
+
+.la-input:hover:enabled,
+.la-select:hover:enabled { border-color: var(--la-blue); }
+.la-input:focus-visible,
+.la-select:focus-visible { border-color: var(--la-blue); box-shadow: var(--la-ring); }
+
+.la-input:disabled,
+.la-select:disabled {
+  background-color: var(--la-surface-2);
+  color: var(--la-ink-3);
+  opacity: 1;               /* dim by color, not by washing the box out */
+  cursor: not-allowed;
+}
+
+/* Spin buttons on a number field are a mis-click waiting to happen at
+   this size, and the value is typed rather than nudged. */
+.la-input[type="number"]::-webkit-inner-spin-button { opacity: 0; }
+.la-input[type="number"]:hover:enabled::-webkit-inner-spin-button { opacity: 1; }
+
+.la-select {
+  min-width: 9em;
+  padding-right: 26px;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  /* Chevron, inlined so the window needs no network and no icon font. */
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%2382828A' d='M1.4 0 6 4.6 10.6 0 12 1.4 6 7.4 0 1.4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-size: 10px auto;
+}
+.la-select:disabled { cursor: not-allowed; }
+
+/* Range slider. Track and thumb have to be styled per-engine; Electron
+   is Chromium only, so the -webkit- rules are the ones that run. */
+.la-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.la-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: var(--la-radius-pill);
+  background: var(--la-line);
+}
+.la-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 22px;
+  margin-top: -8px;         /* center the thumb on the 6px track */
+  border: none;
+  border-radius: var(--la-radius-sm);
+  background: var(--la-blue);
+  box-shadow: var(--la-shadow-1);
+  transition: background var(--la-ease), transform var(--la-ease);
+}
+.la-slider:hover:enabled::-webkit-slider-thumb { background: var(--la-blue-deep); }
+.la-slider:active:enabled::-webkit-slider-thumb { transform: scale(1.06); }
+.la-slider:focus-visible { box-shadow: none; }
+.la-slider:focus-visible::-webkit-slider-thumb { box-shadow: var(--la-ring); }
+.la-slider:disabled { cursor: not-allowed; }
+.la-slider:disabled::-webkit-slider-thumb { background: var(--la-line-strong); }
+
+/* A slider the app writes to and the user cannot drag: a live input
+   value coming off the board — a receiver channel's PWM. It reads as a
+   meter rather than a control, so the thumb is a thin marker and the
+   track keeps its normal weight. It is `disabled` in the markup for the
+   same reason as every other control here (so the enable/disable lists
+   reach it), and pointer-events keeps it uneditable even when enabled. */
+.la-slider--readout {
+  pointer-events: none;
+  height: 16px;
+}
+.la-slider--readout::-webkit-slider-runnable-track {
+  height: 8px;
+  background: var(--la-line);
+}
+.la-slider--readout::-webkit-slider-thumb {
+  width: 8px;
+  height: 16px;
+  margin-top: -4px;         /* center the marker on the 8px track */
+  border-radius: 2px;
+  background: var(--la-blue);
+  box-shadow: none;
+}
+.la-slider--readout:disabled::-webkit-slider-thumb { background: var(--la-line-strong); }
+
+/* Switch. Wraps a real checkbox or radio so the control keeps its
+   keyboard behavior and its checked state; the input itself is hidden
+   behind the track. */
+.la-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--la-space-2);
+  cursor: pointer;
+}
+.la-switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+.la-switch__track {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  border-radius: var(--la-radius-pill);
+  background: var(--la-line-strong);
+  transition: background var(--la-ease);
+}
+.la-switch__track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--la-shadow-1);
+  transition: transform var(--la-ease);
+}
+.la-switch:hover input:enabled ~ .la-switch__track { background: var(--la-ink-3); }
+.la-switch input:checked ~ .la-switch__track { background: var(--la-blue); }
+.la-switch:hover input:checked:enabled ~ .la-switch__track { background: var(--la-blue-deep); }
+.la-switch input:checked ~ .la-switch__track::after { transform: translateX(18px); }
+.la-switch input:focus-visible ~ .la-switch__track { box-shadow: var(--la-ring); }
+.la-switch input:disabled ~ .la-switch__track { opacity: .5; }
+
+/* Radio. One option out of a small exclusive set — a startup mode, a
+   door type. Same shape as .la-switch (a real input kept in the DOM so
+   it keeps its keyboard behavior and its .checked), drawn as a dot
+   rather than a track because a radio that looks like a switch reads as
+   independently toggleable. Group them in a .la-radio-group. */
+.la-radio {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--la-space-2);
+  color: var(--la-ink-2);
+  font-size: var(--la-size-md);
+  cursor: pointer;
+}
+.la-radio input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+.la-radio__mark {
+  position: relative;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--la-line-strong);
+  border-radius: 50%;
+  background: var(--la-surface);
+  transition: border-color var(--la-ease), background var(--la-ease);
+}
+.la-radio__mark::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: var(--la-blue);
+  transform: scale(0);
+  transition: transform var(--la-ease);
+}
+.la-radio:hover input:enabled ~ .la-radio__mark { border-color: var(--la-ink-3); }
+.la-radio input:checked ~ .la-radio__mark { border-color: var(--la-blue); }
+.la-radio input:checked ~ .la-radio__mark::after { transform: scale(1); }
+.la-radio input:focus-visible ~ .la-radio__mark { box-shadow: var(--la-ring); }
+.la-radio input:disabled ~ .la-radio__mark { opacity: .5; }
+.la-radio input:disabled { cursor: not-allowed; }
+
+/* The label text is wrapped in an element rather than left as a bare
+   text node, so the legacy spacing fallback in section 10 can reach
+   it. */
+.la-radio__text { line-height: 1.2; }
+
+/* The options as a set, so a group of them is one block rather than
+   three loose labels. */
+.la-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--la-space-2) var(--la-space-4);
+}
+
+/* ---- 6. Buttons ------------------------------------------ */
+
+/* One button class with modifiers, so hierarchy is stated rather than
+   implied by four near-identical classes:
+     .la-btn--primary   the action the window is for (orange, brand)
+     .la-btn--secondary the working controls (blue)
+     .la-btn--ghost     reversible / cancel
+     .la-btn--danger    destructive or disconnecting */
+.la-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--la-space-2);
+  min-height: 30px;
+  padding: 0 var(--la-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--la-radius-sm);
+  background: var(--la-line);
+  color: var(--la-ink);
+  font-family: inherit;
+  font-size: var(--la-size-sm);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--la-ease), color var(--la-ease),
+              border-color var(--la-ease), box-shadow var(--la-ease);
+}
+.la-btn:active:enabled { transform: translateY(1px); }
+.la-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.la-btn--primary { background: var(--la-orange); color: #fff; }
+.la-btn--primary:hover:enabled { background: #E07F06; }
+
+.la-btn--secondary { background: var(--la-blue); color: #fff; }
+.la-btn--secondary:hover:enabled { background: var(--la-blue-deep); }
+
+.la-btn--ghost {
+  background: transparent;
+  border-color: var(--la-line-strong);
+  color: var(--la-ink-2);
+}
+.la-btn--ghost:hover:enabled { border-color: var(--la-ink-3); color: var(--la-ink); }
+
+.la-btn--danger {
+  background: transparent;
+  border-color: rgba(214, 48, 49, .45);
+  color: var(--la-bad);
+}
+.la-btn--danger:hover:enabled { background: var(--la-bad); border-color: var(--la-bad); color: #fff; }
+
+.la-btn--lg { min-height: 38px; padding: 0 var(--la-space-5); font-size: var(--la-size-md); }
+.la-btn--sm { min-height: 26px; padding: 0 var(--la-space-2); font-size: var(--la-size-xs); }
+.la-btn--block { width: 100%; }
+
+/* On the charcoal bar a ghost button needs light-on-dark borders. */
+.la-appbar .la-btn--ghost {
+  border-color: rgba(255, 255, 255, .30);
+  color: rgba(255, 255, 255, .85);
+}
+.la-appbar .la-btn--ghost:hover:enabled {
+  border-color: #fff;
+  color: #fff;
+  background: rgba(255, 255, 255, .10);
+}
+
+/* A control that behaves like a button but should read as a link. */
+.la-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--la-orange-deep);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.la-link-btn:hover { text-decoration: underline; }
+
+/* ---- 7. Indicators --------------------------------------- */
+
+/* Status LED: a labeled dot with three states. Color alone is not
+   enough to read, so the dot carries its number and the title
+   attribute carries the state in words. */
+.la-led {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--la-space-1);
+}
+.la-led__dot {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid var(--la-line-strong);
+  background: var(--la-surface-2);
+  color: var(--la-ink-3);
+  font-size: var(--la-size-sm);
+  font-weight: 700;
+  transition: background var(--la-ease), border-color var(--la-ease), color var(--la-ease);
+}
+.la-led--ok   .la-led__dot { background: #E4F6E8; border-color: var(--la-ok);  color: #1B7431; }
+.la-led--bad  .la-led__dot { background: #FBE6E6; border-color: var(--la-bad); color: #A32020; }
+.la-led--idle .la-led__dot { background: var(--la-surface-2); border-color: var(--la-line-strong); color: var(--la-ink-3); }
+.la-led__label {
+  color: var(--la-ink-3);
+  font-size: var(--la-size-xs);
+}
+
+/* Read-only value the app writes into — a status line, a measured
+   voltage. Reads as a value, not as something to type in. */
+.la-readout {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 var(--la-space-3);
+  border-radius: var(--la-radius-sm);
+  background: var(--la-surface-2);
+  border: 1px solid var(--la-line);
+  color: var(--la-ink-2);
+  font-size: var(--la-size-md);
+  font-variant-numeric: tabular-nums;
+  user-select: text;
+}
+.la-readout--wide { min-width: 260px; }
+.la-readout:empty::before { content: attr(data-placeholder); color: var(--la-ink-3); }
+
+/* Same thing on the dark bar. */
+.la-appbar .la-readout {
+  background: rgba(255, 255, 255, .10);
+  border-color: rgba(255, 255, 255, .16);
+  color: #fff;
+}
+.la-appbar .la-readout:empty::before { color: rgba(255, 255, 255, .55); }
+
+/* Scrolling log pane. */
+.la-log {
+  width: 100%;
+  padding: var(--la-space-2);
+  border: 1px solid var(--la-line);
+  border-radius: var(--la-radius-sm);
+  background: var(--la-surface-2);
+  color: var(--la-ink);
+  font-family: var(--la-font-mono);
+  font-size: var(--la-size-xs);
+  line-height: 1.6;
+  text-align: left;
+  resize: none;
+  user-select: text;
+  cursor: text;
+}
+.la-log:disabled { color: var(--la-ink-2); }
+
+/* ---- 8. Modals ------------------------------------------- */
+
+/* A modal is a full-window scrim with a centered card. The old windows
+   were absolutely positioned at fixed pixel offsets, which is part of
+   why the window could not be resized; centering in the scrim is what
+   lets it. `.hidden` on the scrim hides the whole thing. */
+.la-modal {
+  position: fixed;
+  /* Longhands rather than `inset: 0`: the shorthand is Chrome 87+, and
+     an app on an older Electron would get a fixed box with `top: auto`
+     — a scrim that never covers the window. */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--la-space-5);
+  background: rgba(45, 45, 47, .45);
+  backdrop-filter: blur(1.5px);
+}
+.la-modal__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--la-space-3);
+  width: min(560px, 100%);
+  max-height: 100%;
+  padding: var(--la-space-5);
+  border-radius: var(--la-radius);
+  background: var(--la-surface);
+  box-shadow: var(--la-shadow-3);
+  overflow-y: auto;
+}
+.la-modal__card--wide { width: min(640px, 100%); }
+.la-modal__title {
+  margin: 0;
+  color: var(--la-charcoal);
+  font-size: var(--la-size-xl);
+  font-weight: 700;
+}
+.la-modal__body {
+  margin: 0;
+  color: var(--la-ink-2);
+  font-size: var(--la-size-md);
+  line-height: 1.55;
+  user-select: text;
+}
+.la-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--la-space-2);
+  padding-top: var(--la-space-1);
+}
+/* Corner toast, for a message that does not block the window. */
+.la-modal--toast {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: var(--la-space-4);
+  background: none;
+  backdrop-filter: none;
+  pointer-events: none;         /* the window behind stays usable */
+}
+.la-modal--toast .la-modal__card {
+  width: min(340px, 100%);
+  padding: var(--la-space-4);
+  box-shadow: var(--la-shadow-2);
+  border: 1px solid var(--la-line);
+  pointer-events: auto;
+}
+
+/* ---- 9. Utilities ---------------------------------------- */
+
+.hidden { display: none !important; }
+/* Hide without giving up the space. For a control that comes and goes
+   inside a fixed layout — `display: none` reflows everything below it,
+   and in a desktop window that means the window changing height while
+   someone is working in it. */
+.la-invisible { visibility: hidden !important; }
+.la-row { display: flex; align-items: center; gap: var(--la-space-2); }
+.la-row--wrap { flex-wrap: wrap; }
+.la-row--end { justify-content: flex-end; }
+.la-row--between { justify-content: space-between; }
+.la-grow { flex: 1 1 auto; min-width: 0; }
+.la-muted { color: var(--la-ink-3); }
+.la-selectable { user-select: text; cursor: text; }
+
+/* Scrollbars, so the one scrolling region does not paint a Windows
+   default gray bar across the design. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--la-line-strong);
+  border: 2px solid var(--la-bg);
+  border-radius: var(--la-radius-pill);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--la-ink-3); }
+
+/* ---- 10. Legacy Chromium fallbacks ------------------------------ */
+
+/* Chromium below 84 parses `gap` (it has had it for grid since 66) but
+   ignores it in a flex container, so every flex row and column in the
+   sections above collapses to zero spacing. Chromium below 86 has no
+   `:focus-visible`, and section 2 turns the default outline off, which
+   leaves a keyboard user with no focus indicator at all.
+   
+   Neither can be feature-detected in CSS — `@supports (gap: 8px)` is
+   true on a browser whose flex containers ignore it — so each app's
+   index.html runs a few lines that add these classes to <html> when the
+   feature is missing. On a current Electron nothing here applies and
+   the rules above stand unchanged.
+   
+   This exists because the sequencer apps are on Electron 8 (Chromium
+   80) while the 3BSM app is on Electron 11 (Chromium 87). When they are
+   all on 11 or newer, delete this section and the detection script. */
+
+/* Non-wrapping containers: the space goes between adjacent children. */
+.no-flexgap .la-appbar        > * + * { margin-left: var(--la-space-3); }
+.no-flexgap .la-actionbar     > * + * { margin-left: var(--la-space-3); }
+.no-flexgap .la-modal__actions > * + * { margin-left: var(--la-space-2); }
+.no-flexgap .la-btn           > * + * { margin-left: var(--la-space-2); }
+.no-flexgap .la-switch        > * + * { margin-left: var(--la-space-2); }
+.no-flexgap .la-radio         > * + * { margin-left: var(--la-space-2); }
+.no-flexgap .la-row           > * + * { margin-left: var(--la-space-2); }
+
+.no-flexgap .la-card          > * + * { margin-top: var(--la-space-3); }
+.no-flexgap .la-modal__card   > * + * { margin-top: var(--la-space-3); }
+.no-flexgap .la-led           > * + * { margin-top: var(--la-space-1); }
+
+/* Wrapping containers cannot use adjacent-sibling margins — a child
+   that wraps onto a second line still needs the space above it. The
+   container takes half the gap as a negative margin and every child
+   takes half as a positive one, which spaces them in both directions
+   without adding an edge. */
+.no-flexgap .la-radio-group { margin: calc(var(--la-space-2) / -2) calc(var(--la-space-4) / -2); }
+.no-flexgap .la-radio-group > * { margin: calc(var(--la-space-2) / 2) calc(var(--la-space-4) / 2); }
+
+.no-flexgap .la-row--wrap { margin: calc(var(--la-space-2) / -2); }
+.no-flexgap .la-row--wrap > * { margin: calc(var(--la-space-2) / 2); }
+
+/* Without :focus-visible the ring has to hang off :focus, which also
+   fires on a mouse click. A visible ring on click is a much smaller
+   problem than no ring at all when tabbing. */
+.no-focusvisible :focus { box-shadow: var(--la-ring); }
+.no-focusvisible .la-slider:focus { box-shadow: none; }
+.no-focusvisible .la-slider:focus::-webkit-slider-thumb { box-shadow: var(--la-ring); }
+.no-focusvisible .la-switch input:focus ~ .la-switch__track { box-shadow: var(--la-ring); }
+.no-focusvisible .la-radio input:focus ~ .la-radio__mark { box-shadow: var(--la-ring); }

@@ -1,0 +1,14 @@
+{
+  "version": "1.0.0",
+  "files": {
+    "lofted-aero.css": "f178a620f25ef38d09adb8543e4f78a0",
+    "lofted-aero-dark.css": "b07a0a240000e7ec26097e5179cd2441"
+  },
+  "docs": {
+    "design-system.md": "3f5b2751588065769ca7f4bd0cf7ba98",
+    "dark-mode.md": "3a1381062dec6cac220dd23c30607a2d",
+    "ui-conventions.md": "703ec78bcd545f75d25004531efae2a1",
+    "ux-rules.md": "0b7ca58e2ea9f68f207add4f48fa42cd",
+    "screen-review.md": "060d5e51a0c667de94b935185ac81646"
+  }
+}
