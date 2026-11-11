@@ -4,7 +4,9 @@
 
 - the vendored design files still match their manifest;
 - src/core/theme.lua is what tools/theme.py generates from them;
-- every Lua file compiles on the Lua its radio runs: EdgeTX is 5.2, Ethos
+- every phrase the radios can say has its clip, made from its current words
+  (tools/voice.py);
+- every Lua file compiles on the Lua its radio runs: EdgeTX is 5.3, Ethos
   is 5.4, and the shared core must run on both;
 - the core's tests pass on both.
 
@@ -21,6 +23,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
 import theme  # noqa: E402
+import voice  # noqa: E402
 
 # Which Lua versions each source tree must compile on.
 TREES = {"src/core": ("lua53", "lua54"), "src/edgetx": ("lua53",), "src/ethos": ("lua54",)}
@@ -52,6 +55,16 @@ def check_vendored():
 def check_theme():
     if read("src/core/theme.lua") != theme.generate():
         failures.append("src/core/theme.lua is stale or hand-edited: run tools/theme.py")
+
+
+def check_clips():
+    made = voice.read_index()
+    for name, words in sorted(voice.phrases().items()):
+        if made.get(name, (None, None))[1] != words or not (voice.OUT / (name + ".wav")).exists():
+            failures.append("the clip %s is missing or says something else: run tools/voice.py" % name)
+    extra = sorted(set(made) - set(voice.phrases()))
+    if extra:
+        failures.append("clips no phrase uses: %s; run tools/voice.py" % ", ".join(extra))
 
 
 def check_compiles():
@@ -89,6 +102,7 @@ def run_tests():
 def main():
     check_vendored()
     check_theme()
+    check_clips()
     check_compiles()
     passed = run_tests()
     for f in failures:

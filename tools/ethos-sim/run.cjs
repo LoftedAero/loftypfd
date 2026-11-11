@@ -2,7 +2,7 @@
 //
 //   node tools/ethos-sim/run.cjs [--scripts dist/ethos/scripts] [--ms 8000]
 //        [--shot out/ethos/screen.png] [--tap X,Y@MS ...] [--every MS]
-//        [--sim DIR] [--sport RECORDING [--sport-at MS]]
+//        [--sim DIR] [--sport RECORDING [--sport-at MS]] [--pull DIR]
 //
 // The simulator is an Emscripten build that Ethos Suite installs under
 // %APPDATA%\Ethos Suite\.simulator. It boots in Node with an in-memory
@@ -67,6 +67,9 @@ const drags = all('--drag').map((t) => {
 // receiver would deliver, at their recorded times. The whole-message status
 // frames are left out: S.Port has only the words.
 const sportFile = opt('--sport', null)
+// --pull DIR copies the captures a test build wrote (capture-*.txt beside
+// the widget's scripts, core/capture.lua) out of the simulator's storage.
+const pull = opt('--pull', null)
 
 function passthroughWords(file) {
   const out = []
@@ -243,6 +246,15 @@ function copyIn(FS, from, to, skip) {
         fs.writeFileSync(path.join(out, f), FS.readFile(root + '/models/' + f))
       }
       console.log(`saved models to ${path.relative(ROOT, out)}`)
+    }
+    if (pull) {
+      const out = path.resolve(ROOT, pull)
+      const dir = root + '/scripts/loftypfd'
+      fs.mkdirSync(out, { recursive: true })
+      for (const f of FS.readdir(dir).filter((n) => /^capture-\d+\.txt$/.test(n))) {
+        fs.writeFileSync(path.join(out, f), FS.readFile(dir + '/' + f))
+        console.log(`pulled ${f}`)
+      }
     }
     process.exit(0)
   }, runMs)

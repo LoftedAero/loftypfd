@@ -1,0 +1,13 @@
+Lofty PFD's voice clips (*.wav here) are spoken by Piper's "cori" voice
+(en_GB-cori-medium, https://huggingface.co/rhasspy/piper-voices), made with
+tools/voice.py.
+
+The voice is that of Cori Samuel, a volunteer reader for LibriVox
+(https://librivox.org). It was trained on the Hi-Fi Multi-Speaker English TTS
+Dataset (reader 92) by Evelina Bakhturina, Vitaly Lavrukhin, Boris Ginsburg
+and Yang Zhang, NVIDIA Corporation, https://www.openslr.org/109/, licensed
+under Creative Commons Attribution 4.0 International
+(https://creativecommons.org/licenses/by/4.0/).
+
+The clips are trimmed, resampled to 16 kHz and leveled from what the voice
+produced.

@@ -67,11 +67,13 @@ py -3.14 -m venv .venv && .venv/Scripts/python -m pip install -r tools/requireme
 .venv/Scripts/python tools/test.py        design files, theme, compile on 5.3/5.4, core tests
 .venv/Scripts/python tests/sitl_test.py   the core against gyro SITL in WSL (a few minutes)
 .venv/Scripts/python tools/theme.py       regenerate src/core/theme.lua
-.venv/Scripts/python tools/icons.py       redraw the bitmaps in src/icons and src/ethos
+.venv/Scripts/python tools/icons.py       redraw the Ethos tool's icon in src/ethos
+.venv/Scripts/python tools/voice.py       make the voice clips in src/audio/en
 .venv/Scripts/python tools/sitl.py record out/flight.txt [--passthrough]
 .venv/Scripts/python tools/sitl.py menu out/gyro-menu.txt
-.venv/Scripts/python tools/build.py [--replay out/flight-crsf.txt] [--menu out/gyro-menu.txt] [--edgetx] [--ethos]
-node tools/ethos-sim/run.cjs --models out/ethos/models [--ms 8000] [--tap X,Y@MS] [--every MS]
+.venv/Scripts/python tools/build.py [--replay out/flight-crsf.txt] [--menu out/gyro-menu.txt] [--maps DIR] [--capture] [--edgetx] [--ethos] [--sd DRIVE]
+.venv/Scripts/python tools/hwtest.py install | run elrs|sport | analyze DIR | rehearse elrs|sport   (docs/hardware-test.md)
+node tools/ethos-sim/run.cjs --models out/ethos/models [--ms 8000] [--tap X,Y@MS] [--every MS] [--pull DIR]
 "C:\Program Files\EdgeTX\Companion 2.12\bin\simulator.exe" -p 0 -w sd     the TX15 simulator
 ```
 

@@ -19,7 +19,8 @@ local function use(name)
 end
 
 local vehicle = use("vehicle")
-local layout = use("layout")
+local flight = use("flight")
+local maps = use("maps")
 local options = use("options")
 local palette = use("palette")
 local replay = use("replay")
@@ -29,6 +30,7 @@ local sensors = use("sensors")
 local home = use("home")
 local devices = use("devices")
 local menu = use("menu")
+local callouts = use("callouts")
 
 local screen = assert(loadScript(DIR .. "screen.lua"))(use, DIR)
 local edgetx = assert(loadScript(DIR .. "link.lua"))(use, DIR)
@@ -51,6 +53,8 @@ end
 local function create(zone, values)
   link = link or edgetx.open()
   local w = { zone = zone, settings = settingsOf(values), state = vehicle.new(), tx = {} }
+  -- Map tiles copied by Lofty GCS, in the widget's maps folder.
+  w.flight = flight.new({ layers = maps.parseIndex(edgetx.readAll(DIR .. "maps/index.txt")), root = DIR .. "maps/" })
   -- A recording beside the widget is played instead of the link: the
   -- simulator has none. It is only ever there in a development build.
   -- The file is opened for each chunk and closed again, so it is never held
@@ -107,6 +111,22 @@ local function lookUpSensors(now)
   end
 end
 
+-- One widget speaks: each decodes its own copy of the link, so two on
+-- screen would say everything twice. Another takes over once the speaker
+-- has gone quiet (removed from its screen).
+local speaker, speakerSeen = nil, 0
+
+local function speak(w, now)
+  if speaker ~= w and now - speakerSeen < 2 then
+    return
+  end
+  speaker, speakerSeen = w, now
+  w.callouts = w.callouts or callouts.new()
+  for _, item in ipairs(w.callouts:update(w.state, now, w.settings.voice, w.settings.beepsDisarmed)) do
+    edgetx.play(item)
+  end
+end
+
 -- At most this many frames of each kind per call: a burst after a stall
 -- must not spend the frame's instruction budget on decoding.
 local FRAMES_PER_CALL = 8
@@ -146,6 +166,7 @@ local function decode(w)
     sensors.apply(s, readSensor, now)
   end
   home.update(s)
+  speak(w, now)
 end
 
 -- EdgeTX calls background only while the widget is off screen, so refresh
@@ -171,6 +192,7 @@ local function refresh(w, event, touch)
   local set = w.settings
   palette.set(palette.pick(set.theme, edgetx.radioDark()))
   screen.size(w.zone.w, w.zone.h)
+  screen.frame()
   local ev, x, y = edgetx.event(event, touch)
   if w.app then
     if ev and w.app:event(ev, x, y) == "exit" then
@@ -182,13 +204,15 @@ local function refresh(w, event, touch)
     end
   end
   w.tx.volts = getValue("tx-voltage")
-  local area = layout.paint(screen, w.state, {
-    now = now, tx = w.tx, tiles = set.tiles, units = set.units, coords = set.coords, cells = set.cells,
-    settings = event ~= nil,
-  })
-  if ev == "enter" or (ev == "tap" and area and x >= area[1] and x < area[3] and y >= area[2] and y < area[4]) then
+  w.flight:update(w.state, now)
+  if (ev == "enter" and set.devicesButton) or (ev and w.flight:event(ev, x, y, now) == "browser") then
     openBrowser(w)
+    return
   end
+  w.flight:paint(screen, w.state, {
+    now = now, tx = w.tx, tiles = set.tiles, units = set.units, coords = set.coords, cells = set.cells,
+    settings = event ~= nil and set.devicesButton,
+  })
 end
 
 return {

@@ -29,3 +29,9 @@ See [CLAUDE.md](CLAUDE.md) and [docs/architecture.md](docs/architecture.md).
 ## License
 
 GPL-3.0. See [LICENSE](LICENSE).
+
+The voice clips are spoken by [Piper](https://github.com/OHF-Voice/piper1-gpl)'s "cori"
+voice: Cori Samuel's LibriVox readings, from the Hi-Fi Multi-Speaker English TTS Dataset by
+NVIDIA ([openslr.org/109](https://www.openslr.org/109/)), licensed
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See
+[src/audio/en/CREDITS.txt](src/audio/en/CREDITS.txt).

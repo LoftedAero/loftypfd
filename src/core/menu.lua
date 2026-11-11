@@ -8,7 +8,7 @@
 -- that learns the setting above it shares that setting's row.
 --
 -- Input arrives as abstract events from the platform: "next" and "prev"
--- (rotary or arrows), "enter", "back", "tap" at x, y, and "drag" by dy.
+-- (rotary or arrows), "enter", "back", "tap" at x, y, and "drag" by x, y.
 -- Taps are matched against what the last paint drew.
 
 local use = ...
@@ -385,7 +385,7 @@ function App:event(ev, x, y)
       end
     end
   elseif ev == "drag" then
-    p.drag = (p.drag or 0) - x
+    p.drag = (p.drag or 0) - (y or 0)
   end
 end
 

@@ -117,17 +117,20 @@ function screen.textWidth(str, size, bold)
   return (lcd.sizeText(str, font(size, bold)))
 end
 
--- Bitmaps from icons/, by name (tools/icons.py), drawn at `size` square:
--- EdgeTX scales by a percentage of the bitmap's own size.
-local bitmaps = {}
-function screen.icon(name, x, y, size)
-  local b = bitmaps[name]
-  if b == nil then
-    local bmp = Bitmap.open(DIR .. "icons/" .. name .. ".png")
-    local w = bmp and Bitmap.getSize(bmp)
-    b = (w and w > 0) and { bmp, w } or false
-    bitmaps[name] = b
-  end
+-- Map tiles and other images by path, drawn at `size` square. Twelve kept:
+-- a full-screen map shows nine. Two are decoded a refresh, so a new zoom level
+-- fills in rather than holding the screen (core/imagecache.lua).
+local images = use("imagecache").new(function(path)
+  local bmp = Bitmap.open(path)
+  local w = bmp and Bitmap.getSize(bmp)
+  return (w and w > 0) and { bmp, w } or false
+end, 12, function()
+  -- A dropped bitmap counts against EdgeTX's allowance until collected.
+  collectgarbage("step")
+end, 2)
+screen.frame = images.frame
+function screen.image(path, x, y, size)
+  local b = images.get(path)
   if b then
     lcd.drawBitmap(b[1], x + ox, y + oy, floor(size * 100 / b[2]))
   end

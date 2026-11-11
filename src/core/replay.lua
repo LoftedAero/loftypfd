@@ -1,12 +1,15 @@
 -- Plays back a recorded CRSF stream as if it were arriving now.
 --
 -- For the simulators, which have no telemetry link, and for a radio on the
--- bench: a flight recorded from ArduPilot SITL (tools/sitl.py record) is fed
--- through the same decoder a live link uses. A recording is lines of
--- "<seconds> <frame type> <payload hex>"; it loops when it runs out.
+-- bench: a flight recorded from ArduPilot SITL (tools/sitl.py record) or a
+-- radio's capture (core/capture.lua) is fed through the same decoders a live
+-- link uses. A recording is lines of "<seconds> <frame type> <payload hex>"
+-- for CRSF and "<seconds> S <app ID> <value>" for S.Port passthrough; other
+-- lines are skipped. It loops when it runs out.
 
 local use = ...
 local crsf = use("crsf")
+local passthrough = use("passthrough")
 local vehicle = use("vehicle")
 
 local M = {}
@@ -43,6 +46,10 @@ end
 local function parse(line)
   local t, ftype, hex = string.match(line, "^(%S+)%s+(%d+)%s+(%x*)")
   if not t then
+    local st, appId, value = string.match(line, "^(%S+)%s+S%s+(%d+)%s+(%-?%d+)")
+    if st then
+      return tonumber(st), "S", { tonumber(appId), tonumber(value) }
+    end
     return nil
   end
   local data = {}
@@ -90,7 +97,11 @@ function Player:update(s, now, limit)
         self.base = now - (self.last or p.t)
         break
       end
-      crsf.apply(s, p.type, p.data, now)
+      if p.type == "S" then
+        passthrough.apply(s, p.data[1], p.data[2], now)
+      else
+        crsf.apply(s, p.type, p.data, now)
+      end
       self.pending = nil
       self.last = p.t
       left = left - 1

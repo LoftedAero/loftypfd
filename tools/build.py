@@ -1,17 +1,23 @@
 """Assembles what goes on each radio, and copies it to the simulators.
 
     .venv/Scripts/python tools/build.py [--replay out/flight-crsf.txt]
-        [--menu out/gyro-menu.txt] [--edgetx] [--ethos]
+        [--menu out/gyro-menu.txt] [--maps out/maps] [--capture]
+        [--edgetx] [--ethos] [--sd DRIVE]
 
 dist/edgetx/WIDGETS/LoftyPFD/ and dist/ethos/scripts/loftypfd/ each get the
 platform's scripts and the shared core; EdgeTX's tool goes to
-dist/edgetx/SCRIPTS/TOOLS/LoftyPFD.lua and loads the widget's core.
+dist/edgetx/SCRIPTS/TOOLS/LoftyPFD.lua and loads the widget's core. The voice
+clips (tools/voice.py) go beside the Ethos scripts in audio/en, and to EdgeTX's
+SOUNDS/en/lofty, since EdgeTX plays no sound path longer than 42 characters.
 
 Two development additions stand in for what a simulator lacks, and never
 ship: --replay adds a SITL recording as replay.txt, which the widget plays in
 place of a telemetry link, and --menu a recorded device menu as menu.txt
 (tools/sitl.py menu), which the device browser browses in place of the link,
-with tools/snapshot.lua answering from it.
+with tools/snapshot.lua answering from it. --maps copies a folder of map tiles
+as Lofty GCS's "Copy to radio" writes them (index.txt and <layer>/<z>/<x>/<y>.jpg)
+into the widget's maps folder. --capture makes an Ethos test build, which
+records its link for tools/hwtest.py (core/capture.lua).
 
 --edgetx copies the widget onto the TX15 simulator's SD card
 (out/edgetx-tx15/sd, the SD path of Companion's profile 0), seeding radio
@@ -21,6 +27,10 @@ or pick Reload > Reload Lua scripts in one already running.
 
 --ethos copies into Ethos Suite's simulator storage, after which Ethos Suite
 needs Reload; the widget then goes on a screen through Configure screens.
+
+--sd copies the Ethos build onto a radio's SD card (the X20 in USB storage
+mode), over what is there: the maps Lofty GCS copied and earlier captures
+stay, and the development files this build lacks are removed.
 """
 import argparse
 import os
@@ -33,6 +43,10 @@ TARGETS = {
     "edgetx": ("WIDGETS/LoftyPFD", ROOT / "src" / "edgetx"),
     "ethos": ("scripts/loftypfd", ROOT / "src" / "ethos"),
 }
+# Where the voice clips go, by platform, from the platform's root.
+CLIPS = {"edgetx": "SOUNDS/en/lofty", "ethos": "scripts/loftypfd/audio/en"}
+# Files only a development build has, beside the widget's scripts.
+DEV_FILES = ("replay.txt", "menu.txt", "capture.on", "core/snapshot.lua")
 # Scripts that live outside the widget's folder, by platform.
 ELSEWHERE = {"edgetx": {"tool.lua": "SCRIPTS/TOOLS/LoftyPFD.lua"}}
 EDGETX_SD = ROOT / "out" / "edgetx-tx15" / "sd"
@@ -45,7 +59,7 @@ def ethos_storage():
     return next(persist.iterdir())
 
 
-def build(replay, menu):
+def build(replay, menu, maps=None, capture=False):
     for name, (folder, src) in TARGETS.items():
         if (DIST / name).exists():
             shutil.rmtree(DIST / name)
@@ -58,14 +72,20 @@ def build(replay, menu):
             shutil.copy2(f, dest)
         for f in (ROOT / "src" / "core").glob("*.lua"):
             shutil.copy2(f, out / "core" / f.name)
-        (out / "icons").mkdir()
-        for f in (ROOT / "src" / "icons").glob("*.png"):
-            shutil.copy2(f, out / "icons" / f.name)
+        clips = DIST / name / CLIPS[name]
+        clips.mkdir(parents=True, exist_ok=True)
+        # The voice's license asks for its credit to go with the clips.
+        for f in list((ROOT / "src" / "audio" / "en").glob("*.wav")) + [ROOT / "src" / "audio" / "en" / "CREDITS.txt"]:
+            shutil.copy2(f, clips / f.name)
         if replay:
             shutil.copy2(replay, out / "replay.txt")
         if menu:
             shutil.copy2(menu, out / "menu.txt")
             shutil.copy2(ROOT / "tools" / "snapshot.lua", out / "core" / "snapshot.lua")
+        if maps:
+            shutil.copytree(maps, out / "maps")
+        if capture and name == "ethos":
+            (out / "capture.on").write_text("")
         print("built " + (DIST / name).relative_to(ROOT).as_posix())
 
 
@@ -91,22 +111,57 @@ def copy(name, dest_root):
     for path in ELSEWHERE.get(name, {}).values():
         (dest_root / path).parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(DIST / name / path, dest_root / path)
+    clips = dest_root / CLIPS[name]
+    if not clips.is_relative_to(dest):
+        if clips.exists():
+            shutil.rmtree(clips)
+        shutil.copytree(DIST / name / CLIPS[name], clips)
     print("copied to " + str(dest))
+
+
+def install(name, dest_root):
+    """Copies a build over a radio's own folder, keeping what is there."""
+    folder = TARGETS[name][0]
+    src, dest = DIST / name / folder, dest_root / folder
+    for rel in DEV_FILES:
+        if (dest / rel).exists() and not (src / rel).exists():
+            (dest / rel).unlink()
+    # The radio compiles the scripts to .luac beside them; one left from the
+    # last build might be run in place of the new source.
+    for old in dest.rglob("*.luac") if dest.exists() else []:
+        old.unlink()
+    # What the build owns, less what this build no longer has; maps and
+    # captures beside them stay.
+    for owned in ("core", "audio"):
+        for old in (dest / owned).rglob("*") if (dest / owned).exists() else []:
+            if old.is_file() and not (src / old.relative_to(dest)).exists():
+                old.unlink()
+    shutil.copytree(src, dest, dirs_exist_ok=True)
+    print("installed on " + str(dest))
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--replay", type=pathlib.Path)
     ap.add_argument("--menu", type=pathlib.Path)
+    ap.add_argument("--maps", type=pathlib.Path)
+    ap.add_argument("--capture", action="store_true", help="an Ethos test build that records its link")
     ap.add_argument("--edgetx", action="store_true", help="copy to the TX15 simulator's SD card")
     ap.add_argument("--ethos", action="store_true", help="copy to Ethos Suite's simulator storage")
+    ap.add_argument("--sd", type=pathlib.Path, help="install the Ethos build on a radio's SD card")
     args = ap.parse_args()
-    build(args.replay, args.menu)
+    build(args.replay, args.menu, args.maps, args.capture)
     if args.edgetx:
         seed_edgetx_sd()
         copy("edgetx", EDGETX_SD)
     if args.ethos:
         copy("ethos", ethos_storage())
+    if args.sd:
+        # "G:" alone is that drive's current folder to Windows, not its root.
+        sd = args.sd
+        if len(str(sd)) == 2 and str(sd)[1] == ":":
+            sd = pathlib.Path(str(sd) + "\\")
+        install("ethos", sd)
 
 
 if __name__ == "__main__":

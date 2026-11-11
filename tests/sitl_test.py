@@ -12,7 +12,6 @@ ports 5760 and 5765. Two runs, about two minutes each:
    radio decodes compared against ArduPilot's own MAVLink.
 2. Passthrough over CRSF (RC_OPTIONS bit 8), the same flight comparison.
 """
-import math
 import pathlib
 import sys
 import time
@@ -20,6 +19,7 @@ import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
 
 import sitl as S  # noqa: E402
+from judge import AFTER_S, angle_diff, judge, readings, truths  # noqa: E402
 
 FC = 0xC8
 results = []
@@ -28,32 +28,6 @@ results = []
 def check(name, ok, detail=""):
     results.append(ok)
     print(("PASS " if ok else "FAIL ") + name + ("  " + str(detail) if detail != "" else ""), flush=True)
-
-
-def angle_diff(a, b):
-    return abs(signed_angle(a - b))
-
-
-def signed_angle(d):
-    return (d + 180) % 360 - 180
-
-
-def path_error(value, truth, angle):
-    """How far `value` lies from the path through consecutive truth values.
-
-    A frame is sampled at some moment between two MAVLink messages, so during
-    a fast roll it can sit far from both and still be exactly right.
-    """
-    if angle:
-        # Unwrap so a path across +-180 or 0/360 is one segment.
-        base = truth[0]
-        truth = [base + signed_angle(t - base) for t in truth]
-        value = base + signed_angle(value - base)
-    best = min(abs(value - t) for t in truth)
-    for a, b in zip(truth, truth[1:]):
-        if min(a, b) <= value <= max(a, b):
-            return 0.0
-    return best
 
 
 def find(radio, folder_name, name):
@@ -272,57 +246,13 @@ def browser(sitl, radio, client):
     check("and back to Normal", sitl.mav.param("SERVO1_FUNCTION") == 4, sitl.mav.param("SERVO1_FUNCTION"))
 
 
-# Each reading a frame changes must lie on the path MAVLink reported around
-# the frame's arrival. CRSF frames go out as soon as ArduPilot answers an RC
-# frame, while its MAVLink stream is buffered and its heartbeat is only 1 Hz,
-# so MAVLink can trail a frame as well as lead it. The window covers those
-# intervals and nothing more; a wrong scale or sign still fails.
-BEFORE_S = 1.5
-AFTER_S = 1.2
-
-
-def readings(radio):
-    s = radio.state
-    return {
-        "roll": s["roll"], "pitch": s["pitch"], "yaw": s["yaw"], "lat": s["lat"], "lon": s["lon"],
-        "alt": s["alt"], "climb": s["climb"], "volts": s["battery"][1]["volts"],
-        "mode": radio.vehicle.modeName(s), "armed": s["armed"], "sats": s["sats"],
-        "groundspeed": s["groundspeed"],
-    }
-
-
-def truths():
-    armed = S.mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED
-    # reading: (message, value, tolerance, kind) where kind is "number",
-    # "angle" (wraps) or "exact"
-    return {
-        "roll": ("ATTITUDE", lambda m: math.degrees(m.roll), 1, "angle"),
-        "pitch": ("ATTITUDE", lambda m: math.degrees(m.pitch), 1, "angle"),
-        "yaw": ("ATTITUDE", lambda m: math.degrees(m.yaw) % 360, 1, "angle"),
-        "lat": ("GLOBAL_POSITION_INT", lambda m: m.lat / 1e7, 2e-5, "number"),
-        "lon": ("GLOBAL_POSITION_INT", lambda m: m.lon / 1e7, 2e-5, "number"),
-        "alt": ("GLOBAL_POSITION_INT", lambda m: m.relative_alt / 1000, 1, "number"),
-        "climb": ("VFR_HUD", lambda m: m.climb, 0.5, "number"),
-        "volts": ("SYS_STATUS", lambda m: m.voltage_battery / 1000, 0.1, "number"),
-        "mode": ("HEARTBEAT", lambda m: S.mavutil.mode_string_v10(m), 0, "exact"),
-        "armed": ("HEARTBEAT", lambda m: bool(m.base_mode & armed), 0, "exact"),
-        "sats": ("GPS_RAW_INT", lambda m: m.satellites_visible, 0, "exact"),
-        # CRSF's GPS frame carries the receiver's speed, as GPS_RAW_INT does;
-        # VFR_HUD's is the attitude estimator's and leads it in a turn.
-        "groundspeed": ("GPS_RAW_INT", lambda m: m.vel / 100, 0.5, "number"),
-    }
-
-
 def flight(sitl, radio, passthrough):
     """Flies, checking every reading each frame changes against MAVLink."""
-    table = truths()
-    stats = {name: [0, 0, 0.0] for name in table}     # compared, wrong, worst error
     longest_gap = 0.0
     last_arrival = None
     ch = sitl.crsf.channels
     checked = {}
     pending = []
-    examples = []
     started = time.time()
 
     def alt():
@@ -344,37 +274,17 @@ def flight(sitl, radio, passthrough):
                     longest_gap = max(longest_gap, arrival - last_arrival)
                 last_arrival = arrival
                 radio.feed([f])
-                for name, value in readings(radio).items():
+                for name, value in readings(radio.state, radio.vehicle).items():
                     if value is None or value == checked.get(name):
                         continue
                     checked[name] = value
                     capped = name == "sats" and passthrough and not radio.vehicle.recent(radio.state, "crsf.gps")
-                    pending.append((name, value, arrival, f[1], capped))
+                    pending.append((name, value, arrival, "%.2f s (frame 0x%02X)" % (arrival - started, f[1]), capped))
             time.sleep(0.02)
     time.sleep(AFTER_S + 0.5)
 
-    for name, value, arrival, ftype, capped in pending:
-        msg_type, get, tolerance, kind = table[name]
-        if capped:
-            get = lambda m: min(m.satellites_visible, 15)  # noqa: E731
-        truth = [get(m) for m in sitl.mav.between(msg_type, arrival - BEFORE_S, arrival + AFTER_S)]
-        if not truth:
-            continue
-        if kind == "exact":
-            norm = lambda v: v.upper() if isinstance(v, str) else v  # noqa: E731
-            error = 0 if norm(value) in [norm(t) for t in truth] else 1
-        else:
-            error = path_error(value, truth, kind == "angle")
-        st = stats[name]
-        st[0] += 1
-        if error > tolerance:
-            st[1] += 1
-            if len(examples) < 12:
-                examples.append("       %s %.2f s: %r (frame 0x%02X), MAVLink %s" % (
-                    name, arrival - started, value, ftype,
-                    [round(t, 2) if isinstance(t, float) else t for t in truth]))
-        st[2] = max(st[2], error)
-
+    table = truths()
+    stats, examples = judge(pending, sitl.mav.between, table)
     for name, (compared, wrong, worst) in stats.items():
         tolerance = table[name][2]
         check("%s matches MAVLink" % name, compared > 0 and wrong == 0,

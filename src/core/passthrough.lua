@@ -36,7 +36,9 @@ M.num = num
 
 local function battery(s, i, w)
   local b = s.battery[i]
-  b.volts = field(w, 0, 9) / 10
+  -- No monitor reads 0 V: it is a battery not there, as over plain CRSF.
+  local volts = field(w, 0, 9) / 10
+  b.volts = volts > 0 and volts or nil
   b.amps = num(w, 9, 2, 1, false) / 10
   b.used = field(w, 17, 15)
 end
@@ -161,8 +163,12 @@ local HANDLERS = {
       return
     end
     -- Bit 31 says longitude, bit 30 negative; the rest is minutes * 10000.
+    -- ArduPilot sends 0 without a fix, which is not a position: the reading
+    -- goes back to none rather than keep one the fix no longer backs.
     local deg = field(w, 0, 30) / 600000
-    if flag(w, 30) then
+    if deg == 0 then
+      deg = nil
+    elseif flag(w, 30) then
       deg = -deg
     end
     if flag(w, 31) then

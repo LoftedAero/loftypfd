@@ -1,5 +1,5 @@
--- What the widget and the tool share on EdgeTX: the CRSF link, and the
--- device browser's input (core/menu.lua) from EdgeTX's events.
+-- What the widget and the tool share on EdgeTX: the CRSF link, the voice,
+-- and the device browser's input (core/menu.lua) from EdgeTX's events.
 
 local use, DIR = ...
 
@@ -51,6 +51,29 @@ function M.radioDark()
   return palette.isDark((c >> 8) & 0xF8, (c >> 3) & 0xFC, (c << 3) & 0xF8)
 end
 
+local callouts = use("callouts")
+
+-- EdgeTX plays no sound path longer than 42 characters, so the clips are in
+-- the sounds folder (tools/build.py), not the widget's.
+local CLIPS = "/SOUNDS/en/lofty/"
+local UNITS = { percent = UNIT_PERCENT }
+
+--- Plays a voice callout or alert (core/callouts.lua).
+function M.play(item)
+  for _, step in ipairs(callouts.sounds(item)) do
+    local kind = step[1]
+    if kind == "file" then
+      playFile(CLIPS .. step[2] .. ".wav")
+    elseif kind == "number" then
+      playNumber(step[2], UNITS[step[3]] or 0)
+    elseif kind == "tone" then
+      playTone(step[2], step[3], step[4])
+    elseif kind == "haptic" then
+      playHaptic(step[2], step[3])
+    end
+  end
+end
+
 local EVENTS = {}
 local function on(event, name)
   if event then
@@ -70,7 +93,7 @@ function M.event(event, touch)
   elseif touch and event == EVT_TOUCH_TAP then
     return "tap", touch.x, touch.y
   elseif touch and event == EVT_TOUCH_SLIDE then
-    return "drag", touch.slideY
+    return "drag", touch.slideX or 0, touch.slideY or 0
   end
 end
 

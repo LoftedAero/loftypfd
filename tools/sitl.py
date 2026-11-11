@@ -103,7 +103,7 @@ def rc_frame(channels):
 class Sitl:
     """One simulator run. Use as a context manager so it is always stopped."""
 
-    def __init__(self, passthrough=False, star=True):
+    def __init__(self, passthrough=False, star=True, extra=""):
         options = 96 | (256 if passthrough else 0) | (4096 if star else 0)
         self.out = ROOT / "out" / "sitl"
         self.out.mkdir(parents=True, exist_ok=True)
@@ -112,7 +112,7 @@ class Sitl:
         self.workdir = pathlib.Path("/tmp/loftypfd-sitl")
         self.workdir.mkdir(parents=True, exist_ok=True)
         self.parm = self.workdir / "test.parm"
-        self.parm.write_text(PARAMS + "RC_OPTIONS %d\n" % options)
+        self.parm.write_text(PARAMS + "RC_OPTIONS %d\n" % options + extra)
         self.proc = None
 
     def __enter__(self):

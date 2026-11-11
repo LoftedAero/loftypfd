@@ -1,0 +1,80 @@
+# Lofty PFD voice clips, made by tools/voice.py: name|voice|words
+armed|piper:en_GB-cori-medium+ffe6338f|Armed
+autotune-failed|piper:en_GB-cori-medium+ffe6338f|Autotune failed
+autotune-success|piper:en_GB-cori-medium+ffe6338f|Autotune success
+bad-accel-health|piper:en_GB-cori-medium+ffe6338f|Bad accelerometer health
+bad-baro-health|piper:en_GB-cori-medium+ffe6338f|Bad barometer health
+bad-compass-health|piper:en_GB-cori-medium+ffe6338f|Bad compass health
+bad-gps-health|piper:en_GB-cori-medium+ffe6338f|Bad G P S health
+bad-gyro-health|piper:en_GB-cori-medium+ffe6338f|Bad gyro health
+bad-lidar-health|piper:en_GB-cori-medium+ffe6338f|Bad lidar health
+bad-optflow-health|piper:en_GB-cori-medium+ffe6338f|Bad optical flow health
+battery|piper:en_GB-cori-medium+ffe6338f|Battery
+battery-critical|piper:en_GB-cori-medium+ffe6338f|Battery critical
+battery-failsafe|piper:en_GB-cori-medium+ffe6338f|Battery failsafe
+battery-low|piper:en_GB-cori-medium+ffe6338f|Battery low
+crash|piper:en_GB-cori-medium+ffe6338f|Crash detected
+disarmed|piper:en_GB-cori-medium+ffe6338f|Disarmed
+failsafe|piper:en_GB-cori-medium+ffe6338f|Failsafe
+failsafe-cleared|piper:en_GB-cori-medium+ffe6338f|Failsafe cleared
+failsafe-gcs|piper:en_GB-cori-medium+ffe6338f|Ground station failsafe
+failsafe-radio|piper:en_GB-cori-medium+ffe6338f|Radio failsafe
+failsafe-throttle|piper:en_GB-cori-medium+ffe6338f|Throttle failsafe
+fence-breached|piper:en_GB-cori-medium+ffe6338f|Fence breached
+gps-fix|piper:en_GB-cori-medium+ffe6338f|G P S 3D fix
+gps-glitch|piper:en_GB-cori-medium+ffe6338f|G P S glitch
+gps-lost|piper:en_GB-cori-medium+ffe6338f|G P S fix lost
+hard-landing|piper:en_GB-cori-medium+ffe6338f|Hard landing detected
+mission-complete|piper:en_GB-cori-medium+ffe6338f|Mission complete
+mode-acro|piper:en_GB-cori-medium+ffe6338f|Acro mode
+mode-althold|piper:en_GB-cori-medium+ffe6338f|Altitude hold mode
+mode-auto|piper:en_GB-cori-medium+ffe6338f|Auto mode
+mode-auto-rtl|piper:en_GB-cori-medium+ffe6338f|Auto return to launch mode
+mode-autoland|piper:en_GB-cori-medium+ffe6338f|Autoland mode
+mode-autotune|piper:en_GB-cori-medium+ffe6338f|Autotune mode
+mode-avoid-adsb|piper:en_GB-cori-medium+ffe6338f|Avoid A D S B mode
+mode-brake|piper:en_GB-cori-medium+ffe6338f|Brake mode
+mode-circle|piper:en_GB-cori-medium+ffe6338f|Circle mode
+mode-cruise|piper:en_GB-cori-medium+ffe6338f|Cruise mode
+mode-dock|piper:en_GB-cori-medium+ffe6338f|Dock mode
+mode-drift|piper:en_GB-cori-medium+ffe6338f|Drift mode
+mode-fbwa|piper:en_GB-cori-medium+ffe6338f|Fly by wire A mode
+mode-fbwb|piper:en_GB-cori-medium+ffe6338f|Fly by wire B mode
+mode-flip|piper:en_GB-cori-medium+ffe6338f|Flip mode
+mode-flowhold|piper:en_GB-cori-medium+ffe6338f|Flow hold mode
+mode-follow|piper:en_GB-cori-medium+ffe6338f|Follow mode
+mode-guided|piper:en_GB-cori-medium+ffe6338f|Guided mode
+mode-guided-nogps|piper:en_GB-cori-medium+ffe6338f|Guided no G P S mode
+mode-heli-autorotate|piper:en_GB-cori-medium+ffe6338f|Autorotate mode
+mode-hold|piper:en_GB-cori-medium+ffe6338f|Hold mode
+mode-initializing|piper:en_GB-cori-medium+ffe6338f|Initializing mode
+mode-land|piper:en_GB-cori-medium+ffe6338f|Land mode
+mode-loiter|piper:en_GB-cori-medium+ffe6338f|Loiter mode
+mode-loiter-to-qland|piper:en_GB-cori-medium+ffe6338f|Loiter to Q land mode
+mode-manual|piper:en_GB-cori-medium+ffe6338f|Manual mode
+mode-poshold|piper:en_GB-cori-medium+ffe6338f|Position hold mode
+mode-qacro|piper:en_GB-cori-medium+ffe6338f|Q acro mode
+mode-qautotune|piper:en_GB-cori-medium+ffe6338f|Q autotune mode
+mode-qhover|piper:en_GB-cori-medium+ffe6338f|Q hover mode
+mode-qland|piper:en_GB-cori-medium+ffe6338f|Q land mode
+mode-qloiter|piper:en_GB-cori-medium+ffe6338f|Q loiter mode
+mode-qrtl|piper:en_GB-cori-medium+ffe6338f|Q return to launch mode
+mode-qstabilize|piper:en_GB-cori-medium+ffe6338f|Q stabilize mode
+mode-rtl|piper:en_GB-cori-medium+ffe6338f|Return to launch mode
+mode-simple|piper:en_GB-cori-medium+ffe6338f|Simple mode
+mode-smart-rtl|piper:en_GB-cori-medium+ffe6338f|Smart return to launch mode
+mode-sport|piper:en_GB-cori-medium+ffe6338f|Sport mode
+mode-stabilize|piper:en_GB-cori-medium+ffe6338f|Stabilize mode
+mode-steering|piper:en_GB-cori-medium+ffe6338f|Steering mode
+mode-systemid|piper:en_GB-cori-medium+ffe6338f|System I D mode
+mode-takeoff|piper:en_GB-cori-medium+ffe6338f|Takeoff mode
+mode-thermal|piper:en_GB-cori-medium+ffe6338f|Thermal mode
+mode-throw|piper:en_GB-cori-medium+ffe6338f|Throw mode
+mode-training|piper:en_GB-cori-medium+ffe6338f|Training mode
+mode-turtle|piper:en_GB-cori-medium+ffe6338f|Turtle mode
+mode-zigzag|piper:en_GB-cori-medium+ffe6338f|Zig zag mode
+transition-done|piper:en_GB-cori-medium+ffe6338f|Transition done
+transition-failed|piper:en_GB-cori-medium+ffe6338f|Transition failed
+tune-pitch-done|piper:en_GB-cori-medium+ffe6338f|Pitch autotune finished
+tune-roll-done|piper:en_GB-cori-medium+ffe6338f|Roll autotune finished
+tune-yaw-done|piper:en_GB-cori-medium+ffe6338f|Yaw autotune finished

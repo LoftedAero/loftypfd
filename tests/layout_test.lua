@@ -103,10 +103,10 @@ end)
 
 T.case("the settings button shows only where the widget can be operated", function()
   local c = canvas(480, 320)
-  T.eq(layout.paint(c, busy(), { now = 10 }), nil, "no button")
+  T.eq(layout.paint(c, busy(), { now = 10 }).gear, nil, "no button")
   for _, size in ipairs({ { 480, 272 }, { 480, 320 }, { 800, 480 } }) do
     c = canvas(size[1], size[2])
-    local a = layout.paint(c, busy(), { now = 10, settings = true })
+    local a = layout.paint(c, busy(), { now = 10, settings = true }).gear
     T.ok(a, "drawn, with its area")
     T.ok(a[3] == size[1] and a[4] == size[2], "at the bottom right")
     T.ok(a[3] - a[1] >= 44 and a[4] - a[2] >= 44, "a finger wide each way")
@@ -128,15 +128,12 @@ T.case("light: light cards, the bar still a dark ground", function()
   local theme = use("theme")
   palette.set("light")
   local c = canvas(480, 320)
-  local fills, inks, icons = {}, {}, {}
+  local fills, inks = {}, {}
   function c.fill(x, y, w, h, color)
     fills[color] = true
   end
   function c.text(x, y, str, size, color)
     inks[str] = color
-  end
-  function c.icon(name)
-    icons[#icons + 1] = name
   end
   layout.paint(c, busy(), { now = 10, tx = { volts = 8.1 }, settings = true })
   palette.set("dark")
@@ -144,7 +141,7 @@ T.case("light: light cards, the bar still a dark ground", function()
   T.ok(not fills[theme.dark.surface], "no dark cards")
   T.eq(inks["FBWA"], theme.dark.ink, "the bar's text is light on dark")
   T.eq(inks["15.9 V"], theme.light.ink, "a card's text is dark on light")
-  T.eq(icons[1], "gear-light", "the gear for the theme")
+  T.ok(fills[theme.light.ink2], "the devices button's sliders in the theme's ink")
 end)
 
 T.case("settings: defaults, and anything out of range is the default", function()

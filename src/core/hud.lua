@@ -515,10 +515,15 @@ function M.paint(c, s, opts)
     write(failsafe, cx, stateY + 26 * sc, 20 * sc, C.red, "center", true)
   end
 
-  -- A chip under the center when the link is lost. The aircraft's messages
-  -- are in the log under the HUD, so they are not said here a second time.
-  local chip
-  if s.lastFrame and now - s.lastFrame > vehicle.LOST_S then
+  -- A chip under the center when the link is lost, and at the center before
+  -- anything has arrived, in Lofty GCS's words for that state: otherwise the
+  -- HUD is a blank field of dashes. Neither radio's font has the ellipsis.
+  -- The aircraft's messages are in the log under the HUD, so they are not
+  -- said here a second time.
+  local chip, chipColor, chipY = nil, C.red, cy + min(w, h) * 0.17
+  if not s.lastFrame then
+    chip, chipColor, chipY = "Waiting for telemetry...", C.ink, cy
+  elseif now - s.lastFrame > vehicle.LOST_S then
     chip = "Link lost"
   end
   if chip then
@@ -532,9 +537,8 @@ function M.paint(c, s, opts)
       text = string.gsub(text, "%s+$", "") .. "..."
     end
     local tw = c.textWidth(text, size, true) + 20 * sc
-    local y = cy + min(w, h) * 0.17
-    c.fill(cx - tw / 2, y - 10 * sc, tw, 20 * sc, C.panel, CHIP_ALPHA)
-    c.text(cx, y, text, size, C.red, "center", true)
+    c.fill(cx - tw / 2, chipY - 10 * sc, tw, 20 * sc, C.panel, CHIP_ALPHA)
+    c.text(cx, chipY, text, size, chipColor, "center", true)
   end
 end
 

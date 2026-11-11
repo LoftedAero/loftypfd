@@ -48,6 +48,26 @@ M.LIST = {
   -- Worked out from the first voltage unless set: that is wrong for a pack
   -- plugged in partly flat (core/vehicle.lua).
   { key = "cells", name = "Cell count", choices = cellChoices(), default = 1 },
+  -- One setting, not the GCS's row per callout (Eric's choice): the rows
+  -- keep their defaults (core/callouts.lua). Alerts only leaves out the
+  -- information rows.
+  {
+    key = "voice", name = "Voice callouts", choices = { "All", "Alerts only", "Off" },
+    values = { "all", "alerts", "off" }, default = 1,
+  },
+  -- A pilot who never uses the device browser can hide its button; the
+  -- radio's own tools menu still opens it (Eric's choice).
+  {
+    key = "devicesButton", name = "Devices button", choices = { "Show", "Hide" },
+    values = { "show", "hide" }, default = 1,
+  },
+  -- The aircraft's warning messages beep, and on the bench, disarmed, they
+  -- come one after another (Eric found them too many); quiet until armed by
+  -- default.
+  {
+    key = "warnBeeps", name = "Warning beeps", choices = { "Always", "Only when armed" },
+    values = { "always", "armed" }, default = 2,
+  },
 }
 
 --- The settings from what a radio stored, `get(option)` giving an option's
@@ -69,6 +89,9 @@ function M.resolve(get)
     units = { distance = v.distance, speed = v.speed, verticalSpeed = v.climb },
     coords = v.coords,
     cells = v.cells > 1 and v.cells - 1 or nil,
+    voice = v.voice,
+    devicesButton = v.devicesButton == "show",
+    beepsDisarmed = v.warnBeeps == "always",
   }
 end
 

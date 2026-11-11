@@ -1,4 +1,8 @@
-# The checks run Lua 5.2 and 5.4 through lupa; the SITL checks read
-# ArduPilot's MAVLink with pymavlink.
+# The checks run Lua 5.3 and 5.4 through lupa; the SITL and hardware checks
+# read ArduPilot's MAVLink with pymavlink, over a serial port with pyserial;
+# tools/voice.py speaks the voice clips with Piper and resamples them with soxr.
 lupa==2.8
 pymavlink==2.4.50
+pyserial==3.5
+piper-tts==1.8.0
+soxr==1.1.0

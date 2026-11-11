@@ -129,6 +129,27 @@ function M.name(mavType, number)
   return t[number] or ("Mode " .. number)
 end
 
+--- Every mode name, once each, sorted: the voice clips are made for these.
+function M.names()
+  local seen, out = {}, {}
+  local function add(name)
+    if not seen[name] then
+      seen[name] = true
+      out[#out + 1] = name
+    end
+  end
+  for _, t in pairs(TABLES) do
+    for _, name in pairs(t) do
+      add(name)
+    end
+  end
+  for _, name in pairs(SHORT) do
+    add(name)
+  end
+  table.sort(out)
+  return out
+end
+
 --- The full name for a CRSF four-letter name; an unknown one is kept as sent.
 function M.fromShort(short)
   return SHORT[short] or short

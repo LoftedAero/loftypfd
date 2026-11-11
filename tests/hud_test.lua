@@ -110,10 +110,10 @@ T.case("tape and compass ticks", function()
   T.eq(hud.angleDelta(350, 10), 20, "wraps")
 end)
 
--- Radios stop a draw call after about 20,000 Lua instructions. EdgeTX lays
--- out and draws in one refresh; Ethos lays out in wakeup, which has no such
--- limit, and replays a display list in paint. Each must leave room for the
--- platform's own drawing code and for what is still to come.
+-- Radios stop a draw call after about 20,000 Lua instructions, and both lay
+-- out and draw in one call: EdgeTX's refresh, Ethos's paint. Each must leave
+-- room for the platform's own drawing code and for what is still to come. On
+-- the X20 an instruction is also time: about 7 microseconds.
 local function busy()
   local s = flying()
   s.roll, s.armed = 35, false
@@ -144,18 +144,20 @@ T.case("EdgeTX: one frame drawn directly stays within budget", function()
   T.ok(n < 10000, "a 480x320 frame took " .. n .. " instructions")
 end)
 
-T.case("Ethos: replaying a frame stays within paint's budget", function()
-  local displaylist = use("displaylist")
-  local rec = displaylist.recorder(function(str, size)
-    return #str * size * 0.6
-  end)
-  rec.reset(800, 480)
-  hud.paint(rec, busy(), { now = 10 })
+T.case("Ethos: the whole 800x480 screen in one paint stays within budget", function()
+  local flight = use("flight")
   local noop = function() end
+  local c = { w = 800, h = 480, fill = noop, tri = noop, line = noop, text = noop, image = noop }
+  function c.textWidth(str, size)
+    return #str * size * 0.6
+  end
+  local f = flight.new({ layers = {}, root = "maps/" })
   local n = count(function()
-    displaylist.replay(rec, { fill = noop, tri = noop, line = noop, text = noop })
+    f:paint(c, busy(), { now = 10, settings = true })
   end)
-  T.ok(n < 6000, "replaying 800x480 took " .. n .. " instructions")
+  -- The core's share; Ethos's drawing wrappers add about 20 a call, some
+  -- 230 calls.
+  T.ok(n < 13000, "an 800x480 screen took " .. n .. " instructions")
 end)
 
 -- The convention every attitude indicator gets wrong once: in a right bank

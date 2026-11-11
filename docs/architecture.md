@@ -84,7 +84,14 @@ is no other specification.
   and 23. Over CRSF the custom frame's sub-type 0xF1 carries the whole message, and the
   words follow seconds later; once an 0xF1 has arrived the words are ignored, or every
   message would show twice.
+- **Some messages are the radio link's alone.** ArduPilot's telemetry library adds sensor
+  health warnings ("Bad GPS Health", "Bad or No Terrain Data") and the firmware's name at
+  startup (`AP_RCTelemetry.cpp`); MAVLink never carries them.
+- **A port set to FrSky passthrough** (`SERIALn_PROTOCOL 10`) stops passthrough over CRSF:
+  in SITL the custom frames carried no words once one was.
 - **Satellites** are capped at 15 in passthrough (4 bits).
+- **Zeros are not readings** on either encoding: without a fix ArduPilot sends latitude and
+  longitude 0 (seen on the X20 over S.Port), and without a battery 0 V; both stay nil.
 - **Link statistics** (0x14) come from the receiver and transmitter, not ArduPilot.
 - **Both encodings at once.** With passthrough on, ArduPilot keeps sending the standard
   frames too, at different rates (measured in SITL: GPS and flight mode every 0.5 s;
@@ -98,7 +105,9 @@ is no other specification.
   attitude frame is the raw estimate, so the two differ by the trim. Passthrough is the only
   source of roll and pitch while it arrives, so the horizon never jumps between them.
 - **Mode and armed are slow over passthrough** (the status word, every few seconds). The
-  standard flight-mode frame updates every 0.5 s, which is why it is preferred.
+  standard flight-mode frame updates every 0.5 s, which is why it is preferred. A mode
+  number has no name until the frame type (passthrough parameter 1) arrives, which in SITL
+  took half a minute from the start.
 - **Home over plain CRSF** is the radio's own (`core/home.lua`), since no standard frame
   carries it: it follows the aircraft while disarmed and is fixed at arming, as ArduPilot's
   is; with armed unknown, the first position stands. Passthrough's own home distance and
@@ -117,6 +126,8 @@ number (0x2C, with a chunk index) and come back as 0x2B frames: parent, type (to
 hidden), name, then a value whose layout depends on the type. Long entries span chunks
 (ArduPilot: 55 bytes, the parent only in the first).
 
+- **While a menu loads, telemetry waits.** ArduPilot answers menu reads ahead of its
+  telemetry: loading the gyro's 91 entries stopped attitude frames for 15 s in SITL.
 - Entries are loaded 1 to count, one request in flight, retried after a second unanswered.
   A device whose name, count or version changes is reloaded from scratch: the ExpressLRS
   script caches the count from its first ping and shows empty menus after a reflash.
@@ -191,16 +202,20 @@ shape both radios fill at any angle, so the horizon is convex polygons clipped t
 ### The instruction budget
 
 Both radios stop a script after about 20,000 Lua instructions per call, so the HUD is
-written for cost and `tests/hud_test.lua` holds the numbers. Measured on the simulators:
+written for cost and `tests/hud_test.lua` holds the numbers. On the X20 (Ethos 1.6.3) an
+instruction is also time: it ran 40,000 in 291 ms, about 7 microseconds each, presumably
+the cost of Ethos counting them.
 
-| | Lays out in | Draws in | Cost |
-| --- | --- | --- | --- |
-| Ethos | `wakeup` (no limit found up to 320,000) | `paint` (limit 20,000-40,000) | replaying a frame: about half of paint's budget |
-| EdgeTX | `refresh` | `refresh` | the full 480x320 screen: 55% typical, 63% peak (`getUsage()`); decoding up to 8 passthrough frames adds about 15% more |
+| | Lays out and draws in | Cost |
+| --- | --- | --- |
+| Ethos | `paint` (limit 20,000-40,000 in the simulator) | the whole 800x480 screen: about 11,000 instructions in the core |
+| EdgeTX | `refresh` | the full 480x320 screen: 55% typical, 63% peak (`getUsage()`); decoding up to 8 passthrough frames adds about 15% more |
 
-- **Ethos splits the work.** `wakeup` lays the HUD out into a display list
-  (`core/displaylist.lua`), `paint` replays it. Recording costs as much again as laying out,
-  which only Ethos's `wakeup` can afford.
+- **Ethos draws in `paint`, in one pass;** `wakeup` reads the telemetry, speaks, and asks for a
+  paint. Laying out into a display list in `wakeup` and replaying it in `paint` took about
+  350 ms a frame on the X20 (186 to lay out and record, 162 to replay and draw), recording
+  nearly as many instructions as the layout itself, and a wakeup that slow let S.Port's queue
+  overflow and lose words from the middle of messages.
 - **EdgeTX draws directly** from the layout, in the one call it has. What keeps it in budget:
   coordinates go to the firmware unrounded (EdgeTX's Lua floors a fractional argument itself);
   lines are clipped only when an end is off screen; color and font lookups are written out
@@ -219,7 +234,8 @@ written for cost and `tests/hud_test.lua` holds the numbers. Measured on the sim
 ## The screen (`core/layout.lua`)
 
 Eric's choice from three rendered arrangements: a status bar across the top, the HUD on the
-left with two tiles in a column beside it, and the message log across the bottom. The bar is
+left with two tiles in a column beside it, and the message log across the bottom. The map
+takes the HUD's place (see "The map"). The bar is
 Lofty GCS's app-bar status (see "The status bar"); the column, its
 actions column. The HUD shrinks to make the room, and draws none of its corner readings, which
 the bar and tiles carry. Panels use the design system's tokens: surface cards with a
@@ -227,12 +243,12 @@ hairline frame and the orange rule under the title, a charcoal bar.
 
 - **Settings are the radio's own widget options** (`core/options.lua`, one list both
   radios build their pages from): tiles, theme, distance, speed and climb units, coordinate
-  format, cell count. Names, choices, order and defaults are Lofty GCS's Preferences
+  format, cell count, voice callouts, the devices button, warning beeps. Names, choices, order and defaults are Lofty GCS's Preferences
   wherever it has the setting ("Distance and altitude", "Follow distance", "Match the
   radio" for its "Match the system"), so a pilot meets one set of words in both. Each is a choice stored as its place, so new choices go on the end;
   EdgeTX keeps them by place in the list (new options on the end too, and an option added
   since a widget was set up reads 0, the default), Ethos by key. They are resolved when they
-  change, not each frame. The gear opens devices only (Eric's choice, for now). Yaapu's
+  change, not each frame. The button beside the log opens devices only (Eric's choice, for now). Yaapu's
   alert thresholds are left out: thresholds come from the aircraft.
 - **Tiles** (`core/tiles.lua`) fill the two slots; Battery and Position by default.
 - **Light and dark** (`core/palette.lua`): panels and the browser follow the radio's theme,
@@ -242,7 +258,7 @@ hairline frame and the orange rule under the title, a charcoal bar.
   EdgeTX's default theme is light. Modules keep a reference to `palette.T`, which is filled
   in place, so the theme is set once per frame before drawing. The HUD and the charcoal bar
   are dark grounds in both themes: what is drawn on the bar takes the dark colors
-  (`palette.BAR`). The gear is a bitmap per theme.
+  (`palette.BAR`).
 - **Battery:** volts per cell from the pilot's cell count, else one worked out once, the
   voltage over 4.35 rounded up. That is right only above 4.35 (n-1)/n V a cell (2.9 V for
   3S, 3.6 V for 6S), so a big pack plugged in partly flat needs the setting; used against the capacity passthrough
@@ -265,30 +281,143 @@ hairline frame and the orange rule under the title, a charcoal bar.
 - **The message log** has no title. A message ArduPilot repeats (the terrain warning every
   5 s) shows once with a count (`vehicle.addMessage`). Debug messages never show. With the log
   on screen, the HUD's chip only says "Link lost", the bar's word for it.
+- **A tap on the log fills the screen with it** below the bar, and another closes it
+  (Eric's choice). The rotary or a drag scrolls it, whole lines, with a scroll bar where the
+  64 messages kept do not fit. Neither the HUD nor the map is drawn under it.
 - **Coordinates** in degrees, minutes and seconds take a smaller size where the pair would
   not fit the tile; both radios' fonts draw the degree sign.
 - **Home** is a house on the heading ribbon at its bearing, at the ribbon's edge with an arrow
   when it is behind; the ribbon's labels step around it.
 - **Climb** is also a bar on the altitude tape's inner edge, square-root scaled to 10 m/s.
+- **Before any telemetry the HUD says "Waiting for telemetry..."**, Lofty GCS's words for that
+  state, at its center; otherwise it is a blank field of dashes (Eric's first hardware run).
 - **The failsafe banner names its type:** battery, EKF, fence breach, or plain "FAILSAFE" for
   the radio and ground-station failsafes, which ArduPilot reports with one flag.
-- **The settings button** (Eric's choice), a square with a gear at the bottom right, the
+- **The devices button** (Eric's choice), a square with sliders at the bottom right, the
   message log ending beside it, opens the device browser in place of the flight display;
   Back from its top page returns. Its side is the log's height, a finger wide on every
   radio. It shows only where the widget can be operated: always on Ethos, and on EdgeTX in
   full screen, the only mode in which a widget gets events (`refresh` has `event` nil
   otherwise; no Lua call enters it, and the "App mode" layout of 2.11 and later enters it
-  with one long press). Decoding goes on underneath.
-- **Icons are bitmaps** (`src/icons`, drawn by `tools/icons.py`) through the canvas's
-  optional `icon(name, x, y, size)`: one call. The gear as filled triangles cost EdgeTX
-  3,800 instructions a frame, and both radios left holes in it: hairline gaps along shared
-  edges, and pixels missing inside sliver triangles. Triangles remain the fallback where a
-  canvas has no `icon`.
+  with one long press). Decoding goes on underneath. A setting hides it (and EdgeTX's Enter
+  with it) for a pilot who never uses it; the radio's tools menu still opens the browser.
+- **The sliders are all filled rectangles** in whole pixels: both radios leave hairline gaps
+  between filled triangles and miss pixels inside sliver ones (a gear of them cost EdgeTX
+  3,800 instructions a frame as well). Rectangles have neither problem.
 - **The transmitter's battery** comes from the platform: Ethos's main-voltage system source,
   EdgeTX's `getValue("tx-voltage")`.
 - **The HUD draws in its part of the screen** through a canvas offset. On EdgeTX the drawing
   functions take the offset themselves (`screen.origin`): a wrapping canvas cost a sixth of
   the frame budget in extra calls. Elsewhere `core/subcanvas.lua` wraps.
+
+## Voice callouts and alerts (`core/callouts.lua`, `core/phrases.lua`)
+
+Lofty GCS's callouts (`src/services/voice` there): its rows, words, tones and rules, cut
+down by Eric's review of every row (2026-11-10). What a radio link does not carry is left
+out, and so is what the radio already says (telemetry lost and regained, link quality,
+timers). Thresholds the pilot would set (cell voltage, altitude, distance, airspeed) are
+left out too, since alerts come from the aircraft. Nothing repeats, and critical callouts
+vibrate. A row that is off is not built at all, since the one setting cannot turn it on.
+
+- **The rules are the GCS's.** A change is said, never a running value. The state is taken
+  as found for 3 s after telemetry starts. A mode is said once it has held for 0.5 s.
+  Battery steps from 50% only go down. While the link is down nothing is said; changes made
+  meanwhile are said when it is back.
+- **No text-to-speech on either radio.** Every phrase is a recorded clip (`core/phrases.lua`
+  lists them; `tools/voice.py` makes them, 16 kHz 16-bit mono, which both radios play, every
+  clip at one peak level). The voice is Piper's "cori" (Eric's choice after sampling 13), an
+  open-source neural voice that runs offline. It was trained on recordings licensed CC BY
+  4.0, so `src/audio/en/CREDITS.txt` and the README credit them. Its model comes from a
+  fixed revision, checked by its hash. Some words are respelled for Piper (`PIPER_RESPELL`),
+  and the index records a fingerprint of those, so changing one remakes the clips. Piper reads
+  a lone capital "A" as the article ("uh"), so it is given "eh", the letter. "Fly by wire"
+  sounded robotic as three words, and run together as one unknown word Piper guessed "bih"
+  for "by"; "Fly-bye-wire" is one word with each syllable full (Eric's pick of eight). Numbers are the radio's own (`playNumber`), in its language. A message
+  from the aircraft is spoken only where a clip says it, else it gets its row's tone.
+  `tools/test.py` fails when a phrase has no clip or its clip says other words.
+- **Plain CRSF carries no messages, fix type or failsafe flags,** so over it only the mode,
+  arming (with the disarmed star) and battery steps are said. The rest needs passthrough.
+- **ArduPilot's own words decide the matching.** Plane's autotune reports each axis
+  ("Roll: Finished") and its gains ("RollD: 0.0123") at error severity, so the gains are
+  ignored and the axis is said, rather than an error tone each time; Copter's is
+  "AutoTune: Success". The battery is "Battery 1 is low 10.50V used 1200 mAh" at warning
+  severity. Plane's failsafes are "RC Short Failsafe On", "RC Long Failsafe On: switched to
+  RTL", "GCS Failsafe On", and "... Cleared" when they end.
+- **Two settings.** Voice callouts: All, Alerts only (information left out) or Off. Warning
+  beeps: Always or Only when armed (the default, since on the bench they come one after
+  another; Eric's first hardware run). The second quiets only the tones the aircraft's
+  messages get; a message with a clip is still said, and a refused arm or mode still beeps,
+  since it answers what the pilot did.
+- **One voice per link.** Ethos's one link speaks at the level the widget was last set to.
+  Each EdgeTX widget decodes its own copy of the link, so only one of them speaks; another
+  takes over when it goes quiet.
+- **The tones** are the GCS's defaults through `playTone`: a 1000 Hz beep of 120 ms for
+  information, three 1250 Hz pips of 90 ms for warnings.
+
+## The map (`core/maps.lua`, `core/flight.lua`)
+
+Lofty GCS's Fly map (`src/ui/tabs/flight/MapView.tsx`) from tiles stored on the radio, which
+Lofty GCS copies there (see "Map tiles"). It draws what the GCS draws: the aircraft as an
+orange arrow along its heading, a blue trail, home as a green outlined house, Leaflet's zoom
+buttons, and the imagery's credit, which its terms keep on screen. Overlay colors are the
+GCS's literals, since they sit on imagery; the controls take the theme's tokens, as the GCS's
+do.
+
+- **Satellite only, always following the aircraft** (Eric's choice): no layer switch, no
+  Follow, no panning. The radio reads the `satellite` line of the index and ignores others.
+- **The zoom buttons are a finger wide** (44 px at scale 1), larger than Leaflet's, with the
+  marks drawn as fills, which stay crisp where a font's "+" would not.
+
+- **A tap on the HUD or the map fills the screen** below the status bar, and another goes
+  back; **a button swaps them**, in the top right corner below the HUD's heading ribbon and
+  above its altitude tape, showing a small picture of the view it opens in that view's
+  colors: a map tile with the arrow on the HUD, a level horizon on the map (Eric's choices,
+  after the GCS's handheld Fly screen). Double taps were tried first and cannot work on the X20: Ethos reads the
+  touchscreen only between frames, 300 ms apart there, and never saw the finger lift
+  between two quick taps, so each double tap arrived as one long touch. The full-screen HUD
+  draws its battery and GPS corners, which the hidden tiles carried. There is no
+  picture-in-picture inset: drawing both would cost the frame budget.
+- On the map the rotary zooms too. Zoom stays within the stored levels, north up, tiles at
+  their own 256 px.
+- **Placed by differences from the view's center.** EdgeTX's single-precision floats hold a
+  world pixel at zoom 18 only to a few pixels, so tiles, trail and markers are placed by their
+  offset in degrees and in Mercator units from the center, and tile edges come from the tile
+  numbers exactly. Tile numbers in paths are integers (`1 << z`): `2 ^ z` is a float and
+  prints "119844.0".
+- **Drawn first, covered after.** A bitmap cannot be clipped on either radio, so the map is
+  painted before the bar, the tile column and the log, which cover what reaches past it.
+  Before the tiles the map is filled, so a tile not stored leaves a plain square; the radio
+  cannot ask whether a file exists before Ethos's recorded paint replays it.
+- **Only the tiles that cover the map** are drawn. Twelve requested at once on Ethos, a row and
+  a column more than needed, drew none in the simulator; the cause is unknown, so watch for it
+  on hardware. `core/imagecache.lua` keeps the twelve most recently drawn (a decoded tile is
+  128 kB, and EdgeTX refuses bitmaps past its Lua allowance) and remembers missing files.
+- **Tiles load one a frame on Ethos, two on EdgeTX,** the rest drawn as plain ground until
+  their turn: each takes about a third of a second to decode on the X20, and a new zoom
+  level held the screen for two seconds while all of them loaded.
+- **Home** is the radio's own when it keeps one, else worked back from passthrough's home
+  distance and bearing.
+- **The trail** is a point each 3 m, the last 120: the GCS keeps every position, but a radio
+  draws each point every frame. A new vehicle state (a replay starting over) starts it again.
+- Cost on EdgeTX: 40-55% of the budget with the tiles beside it, 25-40% full screen, against
+  63-77% for the HUD; a full trail adds about 4,000 instructions.
+
+### Map tiles
+
+Lofty GCS's Offline maps panel has "Copy to radio" (`src/services/radio-maps.ts` there): the
+pilot picks the radio's SD card, and the GCS finds Lofty PFD on it (`WIDGETS/LoftyPFD` or
+`scripts/loftypfd`), fetches whatever of the view's satellite imagery is not stored, and writes
+`maps/<layer>/<z>/<x>/<y>.jpg` with `maps/index.txt`, one layer a line:
+`id|label|min zoom|max zoom|center lat|center lon|credit`.
+
+- **Satellite whatever the GCS's map shows,** since that is the radio's only layer. The
+  index keeps a line per layer, so another could be added without changing the format.
+- **Baseline JPEG.** Both radios load it (checked in both simulators); the GCS re-encodes
+  every tile, whatever its source format. Neither radio lists a folder, which is why the index
+  exists; its center is where the map looks before the aircraft has a position.
+- **Neither radio's font has "©"**, nor Ethos's a "·", so the credit says "(c)".
+- The maps live in the widget's folder, so updating Lofty PFD by copying files over keeps
+  them; deleting the folder first does not.
 
 ## Platforms
 
@@ -323,6 +452,22 @@ hairline frame and the orange rule under the title, a charcoal bar.
   and the device client while the tool is open. Two readers would each see half the
   frames.
 - In the simulator `crsf` exists but has neither `getSensor` nor `popFrame`.
+- `lcd.loadBitmap` loads baseline JPEG; `lcd.drawBitmap(x, y, bitmap, w, h)` scales it.
+- `system.playFile` resolves a relative path against the script's folder
+  (`SCRIPTS:/loftypfd/audio/en/armed.wav`); `system.playTone(frequency, duration, pause)`
+  takes milliseconds. `system.playHaptic(duration, pause)` exists, but its units are
+  unconfirmed: Ethos's own startup buzz logs `duration=10`. Each call is guarded, so a call
+  a radio refuses prints and does not stop the widget.
+- **Lua is slow on the X20** (Ethos 1.6.3): about 140,000 instructions a second, so the
+  screen is drawn in one pass in `paint` (see "The instruction budget"). The test build
+  records the rate and each call's time (`B`, `T` and `U` capture lines).
+- **Ethos compiles `main.lua` to `main.luac`** beside it; an install deletes any `.luac`, so a
+  stale one is never run in place of the new source.
+- **Touches reach a widget only between frames.** The simulator delivers each touch's start
+  twice; a second touch starting 30 ms after the first lost the first one's end there. The
+  test build logs every touch (`E` capture lines).
+- **A widget's `event` returns false for what it does not use,** or Ethos loses its own
+  long press, which opens the widget's menu (Configure widget).
 
 ### EdgeTX (2.12, from the firmware source; TX15 simulator)
 
@@ -351,6 +496,14 @@ hairline frame and the orange rule under the title, a charcoal bar.
   `ENTER` and `EXIT`, `EVT_TOUCH_TAP` and `EVT_TOUCH_SLIDE` (`slideY`); returning nonzero
   closes it. A widget does not run while a tool does, so the tool reads the queue itself.
 - `crossfireTelemetryPush(type, payload)` sends; it returns false while its queue is full.
+- `Bitmap.open` loads baseline JPEG. Bitmaps count against a Lua allowance
+  (`LUA_MEM_EXTRA_MAX`) until collected; past it, `Bitmap.open` returns a bitmap of size 0.
+- A slide's `touch` carries `slideX` and `slideY`; input is "drag" by both.
+- **A sound file's path is at most 42 characters** (`AUDIO_LUA_FILENAME_MAXLEN`), longer
+  ones are cut. The widget's own folder leaves 11 for a name, so the clips are in
+  `/SOUNDS/en/lofty/` and their names are 21 characters at most (a test holds them to it).
+  `playTone(frequency, duration, pause)` and `playHaptic(duration, pause)` take milliseconds;
+  `playNumber(value, unit)` says an integer in the radio's voice.
 
 ## Development loop
 
@@ -367,8 +520,9 @@ hairline frame and the orange rule under the title, a charcoal bar.
     it throughout. It is the script's own child and is stopped by its handle, never by
     name (`pkill -f` matches the calling shell's own command line, and other sessions run
     simulators too).
-  - **How a reading is judged.** Every reading a frame changes must lie on the path of
-    MAVLink values from 1.5 s before its arrival to 1.2 s after. A frame can be sampled
+  - **How a reading is judged** (`tools/judge.py`, shared with the hardware test). Every
+    reading a frame changes must lie on the path of MAVLink values from 1.5 s before its
+    arrival to 1.2 s after. A frame can be sampled
     between two MAVLink messages, and MAVLink can trail it: CRSF frames go out at once
     while MAVLink is buffered and the heartbeat is 1 Hz. Comparing against the newest
     MAVLink value instead measures latency, not decoding.
@@ -378,7 +532,31 @@ hairline frame and the orange rule under the title, a charcoal bar.
     throttle the SITL plane loops.
 - **Replay.** `tools/sitl.py record` saves a SITL flight's CRSF frames; `tools/build.py
   --replay` puts one beside the widget as `replay.txt`, which the widget plays in place of
-  a link. That is how both simulators show a real flight.
+  a link. That is how both simulators show a real flight. A capture from a radio plays the
+  same way, S.Port words included.
+- **The hardware test** (`docs/hardware-test.md`, `tools/hwtest.py`). A test build
+  (`tools/build.py --capture`, Ethos only so far) records everything the widget receives
+  and sends (`core/capture.lua`): frames in replay's form, S.Port words, its own decoding,
+  the link sensors and its timing, appended a second at a time so a switched-off radio
+  loses nothing. The PC drives the flight controller over USB, records its MAVLink, then
+  decodes the capture with the same core and judges it as the SITL test does.
+  - **The two clocks** are lined up by the changes of mode and arming both sides saw, the
+    offset that explains the most of them, then exactly by the roll while the board was
+    rocked by hand. A reading that never changes during a segment is judged as the radio
+    already held it, or it would go unjudged.
+  - **S.Port's mode and armed state** come only in the status word, so they are judged
+    against the 6 s before their arrival.
+  - **Voice:** the capture records each callout played, and every mode change, arming and
+    disarming the test made must be said within the time the link takes to carry it.
+  - `hwtest.py rehearse` runs it all against SITL, a simulated radio writing the capture.
+    S.Port's words there come from passthrough over CRSF, since a FrSky port would stop them;
+    once a GCS is connected SITL sends text only as whole messages (0xF1), which the
+    simulated radio turns into text words, as S.Port carries it.
+  - **Messages** arriving until the next segment begins are a segment's own: over a slow link
+    a burst takes a minute. One that arrives within two minutes of the recording's start may
+    have been sent before it, so it is listed, not judged.
+  - `tools/ethos-sim/run.cjs --pull DIR` copies a capture out of the X20 simulator;
+    Ethos's `io.open(name, "a")` and `io.write(file, text)` append as expected.
 - **The TX15 simulator** is EdgeTX Companion's (`simulator.exe -p 0 -w sd`), with profile 0
   pointing at `out/edgetx-tx15/sd`. In SD mode it refuses a card without
   `RADIO/radio.yml`; `tools/build.py --edgetx` seeds one, and a model whose single
@@ -408,6 +586,8 @@ hairline frame and the orange rule under the title, a charcoal bar.
   - Keys go to `onKeyEvent(keyCode, key, shift, down)` as Ethos Suite's keyboard sends them;
     the radio's keys are arrows: SYS is ArrowLeft, MDL ArrowUp, DISP ArrowRight, RTN
     ArrowDown, PAGE PageUp.
+- **Map tiles without a GCS:** `tools/build.py --maps DIR` copies a folder as Lofty GCS writes
+  it (`index.txt` and the layers) into the widget's `maps`.
 - **The device browser without a device.** Neither simulator has a CRSF device, so
   `tools/sitl.py menu out/gyro-menu.txt` records the gyro's menu from SITL and `tools/build.py
   --menu` puts it beside the scripts as `menu.txt`, with `tools/snapshot.lua` as

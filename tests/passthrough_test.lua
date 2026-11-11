@@ -101,6 +101,17 @@ T.case("latitude and longitude", function()
   passthrough.apply(s, 0x0800, 89499138 + 0x80000000, 0)
   T.near(s.lat, -35.363261, 1e-5, "lat")
   T.near(s.lon, 149.16523, 1e-5, "lon")
+  -- Without a fix ArduPilot sends zeros (seen on the X20): no position.
+  passthrough.apply(s, 0x0800, 0, 0)
+  passthrough.apply(s, 0x0800, 0x80000000, 0)
+  T.eq(s.lat, nil, "no latitude")
+  T.eq(s.lon, nil, "no longitude")
+end)
+
+T.case("a battery reading 0 V is no battery", function()
+  local s = vehicle.new()
+  passthrough.apply(s, 0x5003, 0, 0)
+  T.eq(s.battery[1].volts, nil, "no volts")
 end)
 
 T.case("a radio that hands over signed words", function()

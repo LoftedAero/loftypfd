@@ -163,7 +163,12 @@ end
 --- the log's width. A message the aircraft repeats shows once, with a count.
 --- A framed panel without a title: it runs the width of the screen and its
 --- contents say what it is.
-function M.messages(c, x, y, w, h, s, sc)
+---
+--- `skip`, given for the full-screen list, starts that many messages back
+--- and adds a scroll bar where they do not all fit. Returns how many
+--- messages there are (counted only with `skip`), how many lines fit, and
+--- the line's height.
+function M.messages(c, x, y, w, h, s, sc, skip)
   c.fill(x, y, w, h, T.surface)
   c.line(x, y, x + w - 1, y, T.line, 1)
   c.line(x, y + h - 1, x + w - 1, y + h - 1, T.line, 1)
@@ -174,14 +179,32 @@ function M.messages(c, x, y, w, h, s, sc)
   local step = 14 * sc
   local ly = y + pad + step / 2
   local room = w - 2 * pad
+  local fit = floor((h - 2 * pad - step / 2) / step) + 1
   local list = s.messages
-  local shown = 0
+  local shown, total = 0, 0
+  if skip then
+    for i = 1, #list do
+      if list[i].severity < 7 then
+        total = total + 1
+      end
+    end
+    if total > fit then
+      -- The bar takes the right edge.
+      room = room - 6 * sc
+      local track = h - 2 * pad
+      local bw = max(2, floor(3 * sc))
+      c.fill(x + w - pad / 2 - bw, y + pad + track * skip / total, bw, track * fit / total, T.lineStrong)
+    end
+  end
+  local back = skip or 0
   for i = #list, 1, -1 do
-    if ly > y + h - pad then
+    if shown >= fit then
       break
     end
     local m = list[i]
-    if m.severity < 7 then
+    if m.severity < 7 and back > 0 then
+      back = back - 1
+    elseif m.severity < 7 then
       local text = m.text
       local count = m.count and m.count > 1 and ("  (" .. m.count .. ")") or ""
       if c.textWidth(text .. count, size) > room then
@@ -198,6 +221,7 @@ function M.messages(c, x, y, w, h, s, sc)
   if shown == 0 then
     c.text(x + pad, ly, DASH, size, T.ink3, "left")
   end
+  return total, fit, step
 end
 
 -- The status bar, after Lofty GCS's app bar (src/ui/shell/AppStatus.tsx).
@@ -348,80 +372,30 @@ function M.bar(c, x, y, w, h, s, sc, tx, failsafe, now)
   end
 end
 
--- A gear at radius 1: a disk, and eight teeth as trapezoids reaching into
--- it. Fanning the whole outline from the center made sliver triangles at the
--- teeth's flanks, which radios fill with holes.
-local GEAR_ROOT = 0.72
-local function ring(n, r)
-  local out = {}
-  for i = 0, n - 1 do
-    out[#out + 1] = math.cos(i * 2 * math.pi / n) * r
-    out[#out + 1] = math.sin(i * 2 * math.pi / n) * r
-  end
-  return out
-end
-local DISK = ring(16, GEAR_ROOT)
-local HOLE = ring(12, 1)
-local TEETH = {}
-do
-  local step = 2 * math.pi / 8
-  for i = 0, 7 do
-    local a = i * step
-    for _, q in ipairs({ { -0.38, GEAR_ROOT - 0.1 }, { -0.21, 1 }, { 0.21, 1 }, { 0.38, GEAR_ROOT - 0.1 } }) do
-      TEETH[#TEETH + 1] = math.cos(a + q[1] * step) * q[2]
-      TEETH[#TEETH + 1] = math.sin(a + q[1] * step) * q[2]
-    end
+-- Sliders, for the devices' settings: three tracks, each with its knob, all
+-- rectangles, which both radios fill without the gaps they leave between
+-- triangles. Whole pixels, so the tracks sit evenly.
+local KNOBS = { { 0.18, 0.62 }, { 0.5, 0.22 }, { 0.82, 0.48 } }
+local function sliders(c, x, y, d, color)
+  local t = max(2, floor(d * 0.07 + 0.5))
+  local kw, kh = max(4, floor(d * 0.16 + 0.5)), max(8, floor(d * 0.3 + 0.5))
+  for i = 1, 3 do
+    local k = KNOBS[i]
+    local cy = y + floor(d * k[1] + 0.5)
+    c.fill(x, cy - floor(t / 2), d, t, color)
+    c.fill(x + floor((d - kw) * k[2] + 0.5), cy - floor(kh / 2), kw, kh, color)
   end
 end
 
--- A filled outline (x, y pairs at radius 1), fanned from its center. Radios
--- leave hairline gaps between filled triangles, along the rays the fan
--- shares; a line down each ray closes them.
-local function fan(c, cx, cy, r, pts, color)
-  local n = #pts
-  local px, py = cx + pts[n - 1] * r, cy + pts[n] * r
-  for i = 1, n, 2 do
-    local x, y = cx + pts[i] * r, cy + pts[i + 1] * r
-    c.tri(cx, cy, px, py, x, y, color)
-    c.line(cx, cy, x, y, color, 1)
-    px, py = x, y
-  end
-end
-
-local function gear(c, cx, cy, r, color, bg)
-  fan(c, cx, cy, r, DISK, color)
-  for i = 1, #TEETH, 8 do
-    local ax, ay = cx + TEETH[i] * r, cy + TEETH[i + 1] * r
-    local bx, by = cx + TEETH[i + 2] * r, cy + TEETH[i + 3] * r
-    local qx, qy = cx + TEETH[i + 4] * r, cy + TEETH[i + 5] * r
-    local dx, dy = cx + TEETH[i + 6] * r, cy + TEETH[i + 7] * r
-    -- Both ways of splitting it: each one's seam lies inside the other's
-    -- triangles, where a line along it can land a pixel off.
-    c.tri(ax, ay, bx, by, dx, dy, color)
-    c.tri(bx, by, qx, qy, dx, dy, color)
-    c.tri(ax, ay, bx, by, qx, qy, color)
-    c.tri(ax, ay, qx, qy, dx, dy, color)
-  end
-  fan(c, cx, cy, r * 0.3, HOLE, bg)
-end
-
---- The square settings button: a gear, as the platform's bitmap
---- (canvas.icon, one call) where it has one, else of filled triangles, the
---- only shape both radios fill.
+--- The square button that opens the devices on the link.
 function M.settings(c, x, y, size, sc)
   c.fill(x, y, size, size, T.surface2)
   c.line(x, y, x + size - 1, y, T.lineStrong, 1)
   c.line(x, y + size - 1, x + size - 1, y + size - 1, T.lineStrong, 1)
   c.line(x, y, x, y + size - 1, T.lineStrong, 1)
   c.line(x + size - 1, y, x + size - 1, y + size - 1, T.lineStrong, 1)
-  local r = min(size * 0.3, 18 * sc)
-  local cx, cy = x + size / 2, y + size / 2
-  if c.icon then
-    local d = floor(2 * r)
-    c.icon("gear-" .. palette.name, floor(cx - d / 2), floor(cy - d / 2), d)
-  else
-    gear(c, cx, cy, r, T.ink2, T.surface2)
-  end
+  local d = floor(min(size * 0.6, 36 * sc))
+  sliders(c, x + floor((size - d) / 2), y + floor((size - d) / 2), d, T.ink2)
 end
 
 return M
