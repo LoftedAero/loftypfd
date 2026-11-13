@@ -1,0 +1,1355 @@
+{
+ "format": 1,
+ "name": "Lofty PFD",
+ "version": "0.1.0",
+ "repository": "LoftedAero/loftypfd",
+ "files": "https://raw.githubusercontent.com/LoftedAero/loftypfd/v{version}/{from}",
+ "radios": {
+  "edgetx": {
+   "folder": "WIDGETS/LoftyPFD",
+   "signs": [
+    "RADIO/radio.yml"
+   ],
+   "files": [
+    {
+     "from": "src/edgetx/link.lua",
+     "to": "WIDGETS/LoftyPFD/link.lua",
+     "size": 2859,
+     "sha256": "1e4eff508625de30f7b1b6651c6736d0fd15d071a3e2c6e93375d1a888adc65f"
+    },
+    {
+     "from": "src/edgetx/main.lua",
+     "to": "WIDGETS/LoftyPFD/main.lua",
+     "size": 6819,
+     "sha256": "41a0cec53b25ad3153afa4cae9e10a4c00926e4dbeb42364a072234128eec1ba"
+    },
+    {
+     "from": "src/edgetx/screen.lua",
+     "to": "WIDGETS/LoftyPFD/screen.lua",
+     "size": 4806,
+     "sha256": "77efb5c0677866604fc47e833e41b004fa4a6134e01ce268ef201c41f11b581d"
+    },
+    {
+     "from": "src/edgetx/tool.lua",
+     "to": "SCRIPTS/TOOLS/LoftyPFD.lua",
+     "size": 1444,
+     "sha256": "749eb8d8a9be262392c59a373ca480989e54092ca1ea51fb677d941567de0dd5"
+    },
+    {
+     "from": "src/core/bits.lua",
+     "to": "WIDGETS/LoftyPFD/core/bits.lua",
+     "size": 2325,
+     "sha256": "3780b0b4190e8397ab7b23cfa31a37864149e62d09db829e2680bd3be9134925"
+    },
+    {
+     "from": "src/core/callouts.lua",
+     "to": "WIDGETS/LoftyPFD/core/callouts.lua",
+     "size": 13052,
+     "sha256": "bcba452569327bf4f2f4e680b33805b2d080679b14c8f099a9edb807cea29241"
+    },
+    {
+     "from": "src/core/capture.lua",
+     "to": "WIDGETS/LoftyPFD/core/capture.lua",
+     "size": 4645,
+     "sha256": "36210ec4be445d6a1c20d71d6aa454fbe192b83f5e3bc80a4c3ceb8aa112199a"
+    },
+    {
+     "from": "src/core/crsf.lua",
+     "to": "WIDGETS/LoftyPFD/core/crsf.lua",
+     "size": 6056,
+     "sha256": "57d6db5b4f0250a1e84b7cd154b7b1767652835fa74b05adc2a121db0f612526"
+    },
+    {
+     "from": "src/core/devices.lua",
+     "to": "WIDGETS/LoftyPFD/core/devices.lua",
+     "size": 10611,
+     "sha256": "6f23723a2ad75d5a603351e79194c1606eca33ec389df27f719ab9abc27fe228"
+    },
+    {
+     "from": "src/core/flight.lua",
+     "to": "WIDGETS/LoftyPFD/core/flight.lua",
+     "size": 3431,
+     "sha256": "42cb6b9a737080f0f1cf35d4718a6813c77d6782d392c9e92add5c46725039b5"
+    },
+    {
+     "from": "src/core/geometry.lua",
+     "to": "WIDGETS/LoftyPFD/core/geometry.lua",
+     "size": 2711,
+     "sha256": "00a05af3fed8fbf424216d87853d56f5c55537700a902b351d4a23561f73c228"
+    },
+    {
+     "from": "src/core/home.lua",
+     "to": "WIDGETS/LoftyPFD/core/home.lua",
+     "size": 1738,
+     "sha256": "7185a3785676133286cef37cc570cafd0c4fd65b2c6711d1c1093554d7c91dbf"
+    },
+    {
+     "from": "src/core/hud.lua",
+     "to": "WIDGETS/LoftyPFD/core/hud.lua",
+     "size": 22140,
+     "sha256": "1462e6027875a1bbd9923fef1db73ddaba88ddb6cba41c5ab8ec5437ebcfd044"
+    },
+    {
+     "from": "src/core/imagecache.lua",
+     "to": "WIDGETS/LoftyPFD/core/imagecache.lua",
+     "size": 1932,
+     "sha256": "259166be4adbc8e2379ef041a2dd8f553fa9751561c8f00dc2055671dbd9ef54"
+    },
+    {
+     "from": "src/core/layout.lua",
+     "to": "WIDGETS/LoftyPFD/core/layout.lua",
+     "size": 7041,
+     "sha256": "217cb1e7bc5c5e1b59b24ad0e5beddd5796bd16460a9ce755917e3da6bafd910"
+    },
+    {
+     "from": "src/core/maps.lua",
+     "to": "WIDGETS/LoftyPFD/core/maps.lua",
+     "size": 10882,
+     "sha256": "ba8cbd81e4e5fd0aa599efe6938a36c694dcbdb6461c8a05c7d88f93d0e92955"
+    },
+    {
+     "from": "src/core/menu.lua",
+     "to": "WIDGETS/LoftyPFD/core/menu.lua",
+     "size": 21201,
+     "sha256": "2f9823cadc102e0e1956411ff3c445977673852bffc656186e7d9f3d907fc6d3"
+    },
+    {
+     "from": "src/core/modes.lua",
+     "to": "WIDGETS/LoftyPFD/core/modes.lua",
+     "size": 4455,
+     "sha256": "149bc620c6a4a04ed7885d23c8008fb78516bbe3c5595b598ad31104a4e8a675"
+    },
+    {
+     "from": "src/core/options.lua",
+     "to": "WIDGETS/LoftyPFD/core/options.lua",
+     "size": 3725,
+     "sha256": "d6adc95f8ef36b1e7a751a8a89fab0c219e303d8ba3d00425e19a01cd917b5ca"
+    },
+    {
+     "from": "src/core/palette.lua",
+     "to": "WIDGETS/LoftyPFD/core/palette.lua",
+     "size": 1848,
+     "sha256": "62c0808c4442968404c179b973d0ab7610d9d05fb571ce46bd6050b388bf082b"
+    },
+    {
+     "from": "src/core/panels.lua",
+     "to": "WIDGETS/LoftyPFD/core/panels.lua",
+     "size": 14810,
+     "sha256": "d5236d6ff9f17b20615ca3f97015895e7f21c8dcdd13750dbe0a49ce12d2755d"
+    },
+    {
+     "from": "src/core/passthrough.lua",
+     "to": "WIDGETS/LoftyPFD/core/passthrough.lua",
+     "size": 6739,
+     "sha256": "282dd0515ae95195d4809c00bb6aa485a2623076fd020c9c3f02f5a80ed07782"
+    },
+    {
+     "from": "src/core/phrases.lua",
+     "to": "WIDGETS/LoftyPFD/core/phrases.lua",
+     "size": 3348,
+     "sha256": "b45c8d5d705347aad74644346da6fc21a3236d0abf6316e1a7a5f05461da1add"
+    },
+    {
+     "from": "src/core/replay.lua",
+     "to": "WIDGETS/LoftyPFD/core/replay.lua",
+     "size": 3432,
+     "sha256": "06436adc123639087469e30bb594759b1fa6aeff4d29820a5bc3fbe817878551"
+    },
+    {
+     "from": "src/core/sensors.lua",
+     "to": "WIDGETS/LoftyPFD/core/sensors.lua",
+     "size": 2603,
+     "sha256": "5065d56c9d580fc6c6ae0e22b5cbe58bab69205712f91c4f2bb10836544455ed"
+    },
+    {
+     "from": "src/core/subcanvas.lua",
+     "to": "WIDGETS/LoftyPFD/core/subcanvas.lua",
+     "size": 1030,
+     "sha256": "424325413dd73f04c0af3dbc51e14929a2f19f781e8c8ad35f2c85600bfecff1"
+    },
+    {
+     "from": "src/core/theme.lua",
+     "to": "WIDGETS/LoftyPFD/core/theme.lua",
+     "size": 1413,
+     "sha256": "c0937a434fa56482607bf6f914e3e8cfc4129a3dac48ed0378dbe865269d7c36"
+    },
+    {
+     "from": "src/core/tiles.lua",
+     "to": "WIDGETS/LoftyPFD/core/tiles.lua",
+     "size": 1145,
+     "sha256": "ac64e1afd6d8ff40aea165b32e59fa7d041b9a9a9b532b2e11149ee3d38faaec"
+    },
+    {
+     "from": "src/core/units.lua",
+     "to": "WIDGETS/LoftyPFD/core/units.lua",
+     "size": 3316,
+     "sha256": "98031ba8110adcb45fb192adf343e521a2f2237c0e07f8fe2fb0f0545faf4b3a"
+    },
+    {
+     "from": "src/core/vehicle.lua",
+     "to": "WIDGETS/LoftyPFD/core/vehicle.lua",
+     "size": 5655,
+     "sha256": "463de4fe3f20f8fbd9cc9962b878d1f7fd9a3acfc87dee0baef9b9703f147d8c"
+    },
+    {
+     "from": "src/audio/en/armed.wav",
+     "to": "SOUNDS/en/lofty/armed.wav",
+     "size": 14154,
+     "sha256": "b8689694e4e30e74013eb65576d99ca31de877204184accd9572e58770b37a8b"
+    },
+    {
+     "from": "src/audio/en/autotune-failed.wav",
+     "to": "SOUNDS/en/lofty/autotune-failed.wav",
+     "size": 38406,
+     "sha256": "24ba732543550718edf56da91e41f73e6b9ff83a66fec74925bac4111fb03fe4"
+    },
+    {
+     "from": "src/audio/en/autotune-success.wav",
+     "to": "SOUNDS/en/lofty/autotune-success.wav",
+     "size": 43110,
+     "sha256": "19b34231f291566705c3ced1f657184ce632f978e3a3983351a2788e79485982"
+    },
+    {
+     "from": "src/audio/en/bad-accel-health.wav",
+     "to": "SOUNDS/en/lofty/bad-accel-health.wav",
+     "size": 42880,
+     "sha256": "4ae34302d66b6524310d1c9dd2f3cff49555b0172ed81336d5af597b95ac3bc3"
+    },
+    {
+     "from": "src/audio/en/bad-baro-health.wav",
+     "to": "SOUNDS/en/lofty/bad-baro-health.wav",
+     "size": 36758,
+     "sha256": "94c4aafa3320994fd0d7f3cd2ff4468f5a23ee270540bdf84ebba3e62785e3b9"
+    },
+    {
+     "from": "src/audio/en/bad-compass-health.wav",
+     "to": "SOUNDS/en/lofty/bad-compass-health.wav",
+     "size": 36284,
+     "sha256": "1cca7a5a3af7d160e49cbf93291e360f7caa32f30091c29f0e5a397dec4f6a83"
+    },
+    {
+     "from": "src/audio/en/bad-gps-health.wav",
+     "to": "SOUNDS/en/lofty/bad-gps-health.wav",
+     "size": 43176,
+     "sha256": "e785cb51a9dac17f24a1ffac39e42de21a2bf75beeda4fac2b0bd2e27250cdee"
+    },
+    {
+     "from": "src/audio/en/bad-gyro-health.wav",
+     "to": "SOUNDS/en/lofty/bad-gyro-health.wav",
+     "size": 40554,
+     "sha256": "a59a282e3fafdb0b63bc4d50fee6a5976abddded5d09931434d38394ade3dea2"
+    },
+    {
+     "from": "src/audio/en/bad-lidar-health.wav",
+     "to": "SOUNDS/en/lofty/bad-lidar-health.wav",
+     "size": 36500,
+     "sha256": "fc0d7c00aa9d9b8ff654326563b5ea95462c328b8638c5d355d858ff00e3c672"
+    },
+    {
+     "from": "src/audio/en/bad-optflow-health.wav",
+     "to": "SOUNDS/en/lofty/bad-optflow-health.wav",
+     "size": 48086,
+     "sha256": "fa38397d2f416790179de8117b7202214d6753226117c16890da05e250a002b4"
+    },
+    {
+     "from": "src/audio/en/battery-critical.wav",
+     "to": "SOUNDS/en/lofty/battery-critical.wav",
+     "size": 31386,
+     "sha256": "a806847ebcde9ed909a8890a0d6a02faddf5292f54abf2079fbcef5c89f64584"
+    },
+    {
+     "from": "src/audio/en/battery-failsafe.wav",
+     "to": "SOUNDS/en/lofty/battery-failsafe.wav",
+     "size": 38452,
+     "sha256": "9770f2fe59d2606744a3c14e3578ead380c85191cc0686229c6771282590221b"
+    },
+    {
+     "from": "src/audio/en/battery-low.wav",
+     "to": "SOUNDS/en/lofty/battery-low.wav",
+     "size": 27874,
+     "sha256": "f1d36685ce25b9fabad20cfa3cba53a11d0d0d417c995ec55ffc45a8e480667d"
+    },
+    {
+     "from": "src/audio/en/battery.wav",
+     "to": "SOUNDS/en/lofty/battery.wav",
+     "size": 17192,
+     "sha256": "a8495eafc83ac94ccfd19f1289cf2aefa8df476660ae0ae5455b1402a1c35e06"
+    },
+    {
+     "from": "src/audio/en/crash.wav",
+     "to": "SOUNDS/en/lofty/crash.wav",
+     "size": 29590,
+     "sha256": "498bba60945756795807dd9907150f46bf1276e4f433dc6e9790eb3c1a2e4f33"
+    },
+    {
+     "from": "src/audio/en/disarmed.wav",
+     "to": "SOUNDS/en/lofty/disarmed.wav",
+     "size": 23156,
+     "sha256": "23061ef5af2f8b057e75a0eab768b52be04ca97450319a84a881ef3fa5ce1f7c"
+    },
+    {
+     "from": "src/audio/en/failsafe-cleared.wav",
+     "to": "SOUNDS/en/lofty/failsafe-cleared.wav",
+     "size": 35600,
+     "sha256": "d807c011ec5fb3b22c273dff577b39d0e687a3abc7aff74805402acd9ec4eaf7"
+    },
+    {
+     "from": "src/audio/en/failsafe-gcs.wav",
+     "to": "SOUNDS/en/lofty/failsafe-gcs.wav",
+     "size": 47752,
+     "sha256": "9464a264847b6b75a22db4f2cf5a7ea4fda755fe0fc0ee9a1d30aaf310b62c4d"
+    },
+    {
+     "from": "src/audio/en/failsafe-radio.wav",
+     "to": "SOUNDS/en/lofty/failsafe-radio.wav",
+     "size": 37508,
+     "sha256": "e5be6ae0e3852d9a044212798d74d0d8836c2236fd816caee7afadfa2fbb6dd5"
+    },
+    {
+     "from": "src/audio/en/failsafe-throttle.wav",
+     "to": "SOUNDS/en/lofty/failsafe-throttle.wav",
+     "size": 33602,
+     "sha256": "d0a4a20fcedb6da66103ad0374a274d718e7fcad455a5861dc30a2bd969ebb30"
+    },
+    {
+     "from": "src/audio/en/failsafe.wav",
+     "to": "SOUNDS/en/lofty/failsafe.wav",
+     "size": 19786,
+     "sha256": "04eb8e632cd5e7a33ec46d1887e2c71ef09f8bf334aa38efbb5d12f085e5f941"
+    },
+    {
+     "from": "src/audio/en/fence-breached.wav",
+     "to": "SOUNDS/en/lofty/fence-breached.wav",
+     "size": 27634,
+     "sha256": "13cdbae5494e0fdd0145f4ab39fd1e374ddf509f28645ad83b16b019ccdbd55c"
+    },
+    {
+     "from": "src/audio/en/gps-fix.wav",
+     "to": "SOUNDS/en/lofty/gps-fix.wav",
+     "size": 46352,
+     "sha256": "1af45f510921d38ecd6b5eb2e528742f7b83b0e930deacaf5d898df45dd226f0"
+    },
+    {
+     "from": "src/audio/en/gps-glitch.wav",
+     "to": "SOUNDS/en/lofty/gps-glitch.wav",
+     "size": 33892,
+     "sha256": "7dd667bb700bf8c6c9ccc832b590ea105e82a95d3aa9947e5b7f39c94545f92f"
+    },
+    {
+     "from": "src/audio/en/gps-lost.wav",
+     "to": "SOUNDS/en/lofty/gps-lost.wav",
+     "size": 44394,
+     "sha256": "38e0ec03755f064b8e579d5ea68336761347ef818ccc328530dcb558061e0f20"
+    },
+    {
+     "from": "src/audio/en/hard-landing.wav",
+     "to": "SOUNDS/en/lofty/hard-landing.wav",
+     "size": 41024,
+     "sha256": "39de47cc4224bbe79e82cf592cbfe2f8af3eb95968d1c063ad654f0ba4b8e68c"
+    },
+    {
+     "from": "src/audio/en/mission-complete.wav",
+     "to": "SOUNDS/en/lofty/mission-complete.wav",
+     "size": 33188,
+     "sha256": "61cf3491278e087caad62ecb5018b5ce84ef495ea6a45385262c091b8eb4326e"
+    },
+    {
+     "from": "src/audio/en/mode-acro.wav",
+     "to": "SOUNDS/en/lofty/mode-acro.wav",
+     "size": 24174,
+     "sha256": "28d1708e55caa2cc7da11f9dbff2dc96edfea1b33c19c5e52fe7c89da005e94a"
+    },
+    {
+     "from": "src/audio/en/mode-althold.wav",
+     "to": "SOUNDS/en/lofty/mode-althold.wav",
+     "size": 39162,
+     "sha256": "691bd0ee74eea008be8d35bc6f60c24b05da315022753d60e33b2f7af14642ac"
+    },
+    {
+     "from": "src/audio/en/mode-auto-rtl.wav",
+     "to": "SOUNDS/en/lofty/mode-auto-rtl.wav",
+     "size": 55816,
+     "sha256": "4e7bb7838283881ed54513a43e2d87d8d8356e27396a9a97167d1bc3ee0b33fa"
+    },
+    {
+     "from": "src/audio/en/mode-auto.wav",
+     "to": "SOUNDS/en/lofty/mode-auto.wav",
+     "size": 27584,
+     "sha256": "66cf66194f9570af6c98e89133f17960ad9a84e248ea8ab374972735c0fb7cd8"
+    },
+    {
+     "from": "src/audio/en/mode-autoland.wav",
+     "to": "SOUNDS/en/lofty/mode-autoland.wav",
+     "size": 35264,
+     "sha256": "c2bbddbde70638cd5594622fb1b3545a71b74ffa4cf3b7a9ef61b224b8ba2fd2"
+    },
+    {
+     "from": "src/audio/en/mode-autotune.wav",
+     "to": "SOUNDS/en/lofty/mode-autotune.wav",
+     "size": 36058,
+     "sha256": "d26b3b18a8aba3da10ba7c480897e644f92efd8e343d77ec44277b9443ce0eb1"
+    },
+    {
+     "from": "src/audio/en/mode-avoid-adsb.wav",
+     "to": "SOUNDS/en/lofty/mode-avoid-adsb.wav",
+     "size": 46506,
+     "sha256": "ae86d0477cd2cc84b5946878c5f3b94591f3a4792afce70020b8fa33f7be23ba"
+    },
+    {
+     "from": "src/audio/en/mode-brake.wav",
+     "to": "SOUNDS/en/lofty/mode-brake.wav",
+     "size": 22440,
+     "sha256": "e9b3c526d3d34aef316c8332ce4b422a5ce2a6cd5747051f9923a04ae621759a"
+    },
+    {
+     "from": "src/audio/en/mode-circle.wav",
+     "to": "SOUNDS/en/lofty/mode-circle.wav",
+     "size": 26694,
+     "sha256": "2ef3b0d305011ad5d77a1c46480ba3065eca6a5c173a7a416e177f4cd7f21be8"
+    },
+    {
+     "from": "src/audio/en/mode-cruise.wav",
+     "to": "SOUNDS/en/lofty/mode-cruise.wav",
+     "size": 19342,
+     "sha256": "cec1cbad7fae647e0da63dd8e7613435eb35bfc693430847a02dd7ff24436abe"
+    },
+    {
+     "from": "src/audio/en/mode-dock.wav",
+     "to": "SOUNDS/en/lofty/mode-dock.wav",
+     "size": 23270,
+     "sha256": "83b601b85e62ad7aea93def16d201a28519094bf883111116658795dc37dbe58"
+    },
+    {
+     "from": "src/audio/en/mode-drift.wav",
+     "to": "SOUNDS/en/lofty/mode-drift.wav",
+     "size": 22802,
+     "sha256": "9531302e5e86eee5c279c9093f3ca6c414de1a10db214e6574cedc86e8207def"
+    },
+    {
+     "from": "src/audio/en/mode-fbwa.wav",
+     "to": "SOUNDS/en/lofty/mode-fbwa.wav",
+     "size": 41750,
+     "sha256": "91b760e3af2a6898f9c191a1e6b8668dd94284758405b34fca7a62da5fd26992"
+    },
+    {
+     "from": "src/audio/en/mode-fbwb.wav",
+     "to": "SOUNDS/en/lofty/mode-fbwb.wav",
+     "size": 44444,
+     "sha256": "8f90d834de321efe399e6996e1e1e632eac1c555f6fe4870ba12173869d0cf61"
+    },
+    {
+     "from": "src/audio/en/mode-flip.wav",
+     "to": "SOUNDS/en/lofty/mode-flip.wav",
+     "size": 25628,
+     "sha256": "76a76c2409ce43dd61f554f283477dcd514c983de49457ecba80cebe2423e0e2"
+    },
+    {
+     "from": "src/audio/en/mode-flowhold.wav",
+     "to": "SOUNDS/en/lofty/mode-flowhold.wav",
+     "size": 32040,
+     "sha256": "90426f7c7580abe1ff86527cca8e89367c07263e50c114b8f8a3975acacd1aae"
+    },
+    {
+     "from": "src/audio/en/mode-follow.wav",
+     "to": "SOUNDS/en/lofty/mode-follow.wav",
+     "size": 24260,
+     "sha256": "62323bbde20222c3604a86f4591aa55918ba8f9b54e43f5bb2bed74ec2cdd23d"
+    },
+    {
+     "from": "src/audio/en/mode-guided-nogps.wav",
+     "to": "SOUNDS/en/lofty/mode-guided-nogps.wav",
+     "size": 49416,
+     "sha256": "46e254c1882faedc61927474a690492224c26f401e05335aeb95b57b63aaabcb"
+    },
+    {
+     "from": "src/audio/en/mode-guided.wav",
+     "to": "SOUNDS/en/lofty/mode-guided.wav",
+     "size": 27396,
+     "sha256": "3d83c70941a763953f14bfd3030cd9e513cda5e5caa31f7d0aa9d367b8e2e7c4"
+    },
+    {
+     "from": "src/audio/en/mode-heli-autorotate.wav",
+     "to": "SOUNDS/en/lofty/mode-heli-autorotate.wav",
+     "size": 39564,
+     "sha256": "c788f09fd6dc6ed47b6d71d35fd1049a1b9599ab7e3d9a6157f75663d8dc7373"
+    },
+    {
+     "from": "src/audio/en/mode-hold.wav",
+     "to": "SOUNDS/en/lofty/mode-hold.wav",
+     "size": 23878,
+     "sha256": "327901cfc98a67389b7e32294b8d299ed327343112a8bf08d3af517b49bf4273"
+    },
+    {
+     "from": "src/audio/en/mode-initializing.wav",
+     "to": "SOUNDS/en/lofty/mode-initializing.wav",
+     "size": 40466,
+     "sha256": "72b5e87e25758f2f75a0df5de37cb51f7ee66c98dc48c18bcc7fcb796ed694f2"
+    },
+    {
+     "from": "src/audio/en/mode-land.wav",
+     "to": "SOUNDS/en/lofty/mode-land.wav",
+     "size": 24170,
+     "sha256": "1be90fea98fb363d09fcbd3461f52c2f6241f0e60b006004c1af7066ee97aa27"
+    },
+    {
+     "from": "src/audio/en/mode-loiter-to-qland.wav",
+     "to": "SOUNDS/en/lofty/mode-loiter-to-qland.wav",
+     "size": 47858,
+     "sha256": "5e2b5f63547bd95220ba89e190df14b56c17d34fa3dca1c162b9bccd708e1d3d"
+    },
+    {
+     "from": "src/audio/en/mode-loiter.wav",
+     "to": "SOUNDS/en/lofty/mode-loiter.wav",
+     "size": 29440,
+     "sha256": "b7832fab0af738f74fbfceb457e5916b5df27894aeda0fcb81ca3e07d6bfbf09"
+    },
+    {
+     "from": "src/audio/en/mode-manual.wav",
+     "to": "SOUNDS/en/lofty/mode-manual.wav",
+     "size": 27382,
+     "sha256": "c721a8fda9ed5b0f01433385ade2b779fed0b1d5370b028372b3c957d87080c1"
+    },
+    {
+     "from": "src/audio/en/mode-poshold.wav",
+     "to": "SOUNDS/en/lofty/mode-poshold.wav",
+     "size": 36432,
+     "sha256": "c8c1108d511bce5466805a547bb87868cafacdd918b66768fbd7b0cab87ea417"
+    },
+    {
+     "from": "src/audio/en/mode-qacro.wav",
+     "to": "SOUNDS/en/lofty/mode-qacro.wav",
+     "size": 28870,
+     "sha256": "80bbde8d09b76ec117dff850581a8451b620166ea14a2d761b3f9da4a3a4bbe3"
+    },
+    {
+     "from": "src/audio/en/mode-qautotune.wav",
+     "to": "SOUNDS/en/lofty/mode-qautotune.wav",
+     "size": 34960,
+     "sha256": "e772faff1294bf082bbc31270facab26b276af73af1f28ec6dd45b065ad21676"
+    },
+    {
+     "from": "src/audio/en/mode-qhover.wav",
+     "to": "SOUNDS/en/lofty/mode-qhover.wav",
+     "size": 31522,
+     "sha256": "c918d631012587ed23d74c89a00ca7743b2e86cef0925f98c86613ea635daa9d"
+    },
+    {
+     "from": "src/audio/en/mode-qland.wav",
+     "to": "SOUNDS/en/lofty/mode-qland.wav",
+     "size": 30854,
+     "sha256": "ce0171891f2fe402b6272830e0183418bc66f958f5291147e6c6b51ebe3b1060"
+    },
+    {
+     "from": "src/audio/en/mode-qloiter.wav",
+     "to": "SOUNDS/en/lofty/mode-qloiter.wav",
+     "size": 33816,
+     "sha256": "302531ae4ecc784428e1977fb6baf7acdc23683a01bcc09737b4cf566a12d91c"
+    },
+    {
+     "from": "src/audio/en/mode-qrtl.wav",
+     "to": "SOUNDS/en/lofty/mode-qrtl.wav",
+     "size": 47174,
+     "sha256": "d53a4847cab562edc148b9279b58cb074d2927a86ed1e247e0e8399ec0681423"
+    },
+    {
+     "from": "src/audio/en/mode-qstabilize.wav",
+     "to": "SOUNDS/en/lofty/mode-qstabilize.wav",
+     "size": 46062,
+     "sha256": "a79f52e6cd94c78ef12976be5fa61fdc94cdd45382693092eb4ba42cf731ed50"
+    },
+    {
+     "from": "src/audio/en/mode-rtl.wav",
+     "to": "SOUNDS/en/lofty/mode-rtl.wav",
+     "size": 43056,
+     "sha256": "441bf54258d2f1ff0e45942603ae90e7ed47f536daaf9f4da4d7b8e70c1702a7"
+    },
+    {
+     "from": "src/audio/en/mode-simple.wav",
+     "to": "SOUNDS/en/lofty/mode-simple.wav",
+     "size": 28004,
+     "sha256": "eb444ce02a8eeacb94ab74e2d47552079647d94637cb3e1b6758d9fbb69b298b"
+    },
+    {
+     "from": "src/audio/en/mode-smart-rtl.wav",
+     "to": "SOUNDS/en/lofty/mode-smart-rtl.wav",
+     "size": 50244,
+     "sha256": "2e308811e8b3ff1d02017c15edf15b04803a1b2367bcc521c6008318d006bda6"
+    },
+    {
+     "from": "src/audio/en/mode-sport.wav",
+     "to": "SOUNDS/en/lofty/mode-sport.wav",
+     "size": 26598,
+     "sha256": "6b8db8c3e0cda4b84196e497fd9f5e7829c1c6325139330586c332972b1c26ac"
+    },
+    {
+     "from": "src/audio/en/mode-stabilize.wav",
+     "to": "SOUNDS/en/lofty/mode-stabilize.wav",
+     "size": 39698,
+     "sha256": "07ca9d81ef75d26b6596f3baf9e77a7d24b60f865e2b956b5bcad667c8b987de"
+    },
+    {
+     "from": "src/audio/en/mode-steering.wav",
+     "to": "SOUNDS/en/lofty/mode-steering.wav",
+     "size": 26000,
+     "sha256": "e5db58e14834b7de96ede1f5a1fb924e78eb7bc688b0d4060e8f0ab0234e6361"
+    },
+    {
+     "from": "src/audio/en/mode-systemid.wav",
+     "to": "SOUNDS/en/lofty/mode-systemid.wav",
+     "size": 36496,
+     "sha256": "c3436c7ee8c9320429602a481555a9a84c41ac3c2e70fdc7f341b33d9f4fcee8"
+    },
+    {
+     "from": "src/audio/en/mode-takeoff.wav",
+     "to": "SOUNDS/en/lofty/mode-takeoff.wav",
+     "size": 26528,
+     "sha256": "682479b9696f72c6e5c9606e7767fa7578aa3726d05a33b0d31ecd6f9103ab13"
+    },
+    {
+     "from": "src/audio/en/mode-thermal.wav",
+     "to": "SOUNDS/en/lofty/mode-thermal.wav",
+     "size": 27632,
+     "sha256": "c35bc7bd05cc8af98ed3224f183e8544d1d5496eda8a62cdfd9375ced37848eb"
+    },
+    {
+     "from": "src/audio/en/mode-throw.wav",
+     "to": "SOUNDS/en/lofty/mode-throw.wav",
+     "size": 23102,
+     "sha256": "cf951f1802f92b41410fd80171f05c714021fe3a2d09620858ce67dbfce512e2"
+    },
+    {
+     "from": "src/audio/en/mode-training.wav",
+     "to": "SOUNDS/en/lofty/mode-training.wav",
+     "size": 26230,
+     "sha256": "f46e9df70088cfccfaa1c608490bdcaba7de8abdb17aa9e5cec276c2ad2ab33f"
+    },
+    {
+     "from": "src/audio/en/mode-turtle.wav",
+     "to": "SOUNDS/en/lofty/mode-turtle.wav",
+     "size": 27332,
+     "sha256": "0a796385e93ae2b46271b6f9aacfa6649c96910c885e94f06bb347d3ffb517dc"
+    },
+    {
+     "from": "src/audio/en/mode-zigzag.wav",
+     "to": "SOUNDS/en/lofty/mode-zigzag.wav",
+     "size": 29442,
+     "sha256": "87a1f3c2cfc3716a066007eb8c8a41d440ec40bfe578d1f65f0588154baf4d55"
+    },
+    {
+     "from": "src/audio/en/transition-done.wav",
+     "to": "SOUNDS/en/lofty/transition-done.wav",
+     "size": 32096,
+     "sha256": "52a161ef1c1e83ce998b446cadac05aab494612959533e8734564626afafdcc2"
+    },
+    {
+     "from": "src/audio/en/transition-failed.wav",
+     "to": "SOUNDS/en/lofty/transition-failed.wav",
+     "size": 36168,
+     "sha256": "def0c7ce7270b8b1ab71cfa43636492b63f7523dfc0d96d39363e011e5409003"
+    },
+    {
+     "from": "src/audio/en/tune-pitch-done.wav",
+     "to": "SOUNDS/en/lofty/tune-pitch-done.wav",
+     "size": 47836,
+     "sha256": "804aa7635aff3b69e352844a462a37800f8b36a8a53f33b9d2b172c6d203ec36"
+    },
+    {
+     "from": "src/audio/en/tune-roll-done.wav",
+     "to": "SOUNDS/en/lofty/tune-roll-done.wav",
+     "size": 45132,
+     "sha256": "7b05059e1acb5786effe7a53f5ed4877061b57fe3f2ef8dd8bb23d51242193e9"
+    },
+    {
+     "from": "src/audio/en/tune-yaw-done.wav",
+     "to": "SOUNDS/en/lofty/tune-yaw-done.wav",
+     "size": 39918,
+     "sha256": "a8dd84187a03b9bc92522299150cca59b8da27807c68b222b66f4abdfe3ba448"
+    },
+    {
+     "from": "src/audio/en/CREDITS.txt",
+     "to": "SOUNDS/en/lofty/CREDITS.txt",
+     "size": 647,
+     "sha256": "020e56ee8b514049915cfc77828f1c06af05831e7db37b16909d1b2e91d28702"
+    }
+   ],
+   "owned": [
+    "WIDGETS/LoftyPFD/core",
+    "SOUNDS/en/lofty"
+   ],
+   "remove": [
+    "WIDGETS/LoftyPFD/**/*.luac",
+    "SCRIPTS/TOOLS/LoftyPFD.luac",
+    "WIDGETS/LoftyPFD/replay.txt",
+    "WIDGETS/LoftyPFD/menu.txt",
+    "WIDGETS/LoftyPFD/capture.on"
+   ]
+  },
+  "ethos": {
+   "folder": "scripts/loftypfd",
+   "signs": [
+    "sdcard.cpuid",
+    "radio.cpuid"
+   ],
+   "files": [
+    {
+     "from": "src/ethos/main.lua",
+     "to": "scripts/loftypfd/main.lua",
+     "size": 20272,
+     "sha256": "4f6891426b49926f0c31c67bafb44d48f41c0e89806c7ef534f841fae56ef8d8"
+    },
+    {
+     "from": "src/ethos/icon.png",
+     "to": "scripts/loftypfd/icon.png",
+     "size": 1161,
+     "sha256": "4e91f294ce5dc04cd9892c71dd83db1dbd4e0cfb9328e581aee2f94bf4660155"
+    },
+    {
+     "from": "src/core/bits.lua",
+     "to": "scripts/loftypfd/core/bits.lua",
+     "size": 2325,
+     "sha256": "3780b0b4190e8397ab7b23cfa31a37864149e62d09db829e2680bd3be9134925"
+    },
+    {
+     "from": "src/core/callouts.lua",
+     "to": "scripts/loftypfd/core/callouts.lua",
+     "size": 13052,
+     "sha256": "bcba452569327bf4f2f4e680b33805b2d080679b14c8f099a9edb807cea29241"
+    },
+    {
+     "from": "src/core/capture.lua",
+     "to": "scripts/loftypfd/core/capture.lua",
+     "size": 4645,
+     "sha256": "36210ec4be445d6a1c20d71d6aa454fbe192b83f5e3bc80a4c3ceb8aa112199a"
+    },
+    {
+     "from": "src/core/crsf.lua",
+     "to": "scripts/loftypfd/core/crsf.lua",
+     "size": 6056,
+     "sha256": "57d6db5b4f0250a1e84b7cd154b7b1767652835fa74b05adc2a121db0f612526"
+    },
+    {
+     "from": "src/core/devices.lua",
+     "to": "scripts/loftypfd/core/devices.lua",
+     "size": 10611,
+     "sha256": "6f23723a2ad75d5a603351e79194c1606eca33ec389df27f719ab9abc27fe228"
+    },
+    {
+     "from": "src/core/flight.lua",
+     "to": "scripts/loftypfd/core/flight.lua",
+     "size": 3431,
+     "sha256": "42cb6b9a737080f0f1cf35d4718a6813c77d6782d392c9e92add5c46725039b5"
+    },
+    {
+     "from": "src/core/geometry.lua",
+     "to": "scripts/loftypfd/core/geometry.lua",
+     "size": 2711,
+     "sha256": "00a05af3fed8fbf424216d87853d56f5c55537700a902b351d4a23561f73c228"
+    },
+    {
+     "from": "src/core/home.lua",
+     "to": "scripts/loftypfd/core/home.lua",
+     "size": 1738,
+     "sha256": "7185a3785676133286cef37cc570cafd0c4fd65b2c6711d1c1093554d7c91dbf"
+    },
+    {
+     "from": "src/core/hud.lua",
+     "to": "scripts/loftypfd/core/hud.lua",
+     "size": 22140,
+     "sha256": "1462e6027875a1bbd9923fef1db73ddaba88ddb6cba41c5ab8ec5437ebcfd044"
+    },
+    {
+     "from": "src/core/imagecache.lua",
+     "to": "scripts/loftypfd/core/imagecache.lua",
+     "size": 1932,
+     "sha256": "259166be4adbc8e2379ef041a2dd8f553fa9751561c8f00dc2055671dbd9ef54"
+    },
+    {
+     "from": "src/core/layout.lua",
+     "to": "scripts/loftypfd/core/layout.lua",
+     "size": 7041,
+     "sha256": "217cb1e7bc5c5e1b59b24ad0e5beddd5796bd16460a9ce755917e3da6bafd910"
+    },
+    {
+     "from": "src/core/maps.lua",
+     "to": "scripts/loftypfd/core/maps.lua",
+     "size": 10882,
+     "sha256": "ba8cbd81e4e5fd0aa599efe6938a36c694dcbdb6461c8a05c7d88f93d0e92955"
+    },
+    {
+     "from": "src/core/menu.lua",
+     "to": "scripts/loftypfd/core/menu.lua",
+     "size": 21201,
+     "sha256": "2f9823cadc102e0e1956411ff3c445977673852bffc656186e7d9f3d907fc6d3"
+    },
+    {
+     "from": "src/core/modes.lua",
+     "to": "scripts/loftypfd/core/modes.lua",
+     "size": 4455,
+     "sha256": "149bc620c6a4a04ed7885d23c8008fb78516bbe3c5595b598ad31104a4e8a675"
+    },
+    {
+     "from": "src/core/options.lua",
+     "to": "scripts/loftypfd/core/options.lua",
+     "size": 3725,
+     "sha256": "d6adc95f8ef36b1e7a751a8a89fab0c219e303d8ba3d00425e19a01cd917b5ca"
+    },
+    {
+     "from": "src/core/palette.lua",
+     "to": "scripts/loftypfd/core/palette.lua",
+     "size": 1848,
+     "sha256": "62c0808c4442968404c179b973d0ab7610d9d05fb571ce46bd6050b388bf082b"
+    },
+    {
+     "from": "src/core/panels.lua",
+     "to": "scripts/loftypfd/core/panels.lua",
+     "size": 14810,
+     "sha256": "d5236d6ff9f17b20615ca3f97015895e7f21c8dcdd13750dbe0a49ce12d2755d"
+    },
+    {
+     "from": "src/core/passthrough.lua",
+     "to": "scripts/loftypfd/core/passthrough.lua",
+     "size": 6739,
+     "sha256": "282dd0515ae95195d4809c00bb6aa485a2623076fd020c9c3f02f5a80ed07782"
+    },
+    {
+     "from": "src/core/phrases.lua",
+     "to": "scripts/loftypfd/core/phrases.lua",
+     "size": 3348,
+     "sha256": "b45c8d5d705347aad74644346da6fc21a3236d0abf6316e1a7a5f05461da1add"
+    },
+    {
+     "from": "src/core/replay.lua",
+     "to": "scripts/loftypfd/core/replay.lua",
+     "size": 3432,
+     "sha256": "06436adc123639087469e30bb594759b1fa6aeff4d29820a5bc3fbe817878551"
+    },
+    {
+     "from": "src/core/sensors.lua",
+     "to": "scripts/loftypfd/core/sensors.lua",
+     "size": 2603,
+     "sha256": "5065d56c9d580fc6c6ae0e22b5cbe58bab69205712f91c4f2bb10836544455ed"
+    },
+    {
+     "from": "src/core/subcanvas.lua",
+     "to": "scripts/loftypfd/core/subcanvas.lua",
+     "size": 1030,
+     "sha256": "424325413dd73f04c0af3dbc51e14929a2f19f781e8c8ad35f2c85600bfecff1"
+    },
+    {
+     "from": "src/core/theme.lua",
+     "to": "scripts/loftypfd/core/theme.lua",
+     "size": 1413,
+     "sha256": "c0937a434fa56482607bf6f914e3e8cfc4129a3dac48ed0378dbe865269d7c36"
+    },
+    {
+     "from": "src/core/tiles.lua",
+     "to": "scripts/loftypfd/core/tiles.lua",
+     "size": 1145,
+     "sha256": "ac64e1afd6d8ff40aea165b32e59fa7d041b9a9a9b532b2e11149ee3d38faaec"
+    },
+    {
+     "from": "src/core/units.lua",
+     "to": "scripts/loftypfd/core/units.lua",
+     "size": 3316,
+     "sha256": "98031ba8110adcb45fb192adf343e521a2f2237c0e07f8fe2fb0f0545faf4b3a"
+    },
+    {
+     "from": "src/core/vehicle.lua",
+     "to": "scripts/loftypfd/core/vehicle.lua",
+     "size": 5655,
+     "sha256": "463de4fe3f20f8fbd9cc9962b878d1f7fd9a3acfc87dee0baef9b9703f147d8c"
+    },
+    {
+     "from": "src/audio/en/armed.wav",
+     "to": "scripts/loftypfd/audio/en/armed.wav",
+     "size": 14154,
+     "sha256": "b8689694e4e30e74013eb65576d99ca31de877204184accd9572e58770b37a8b"
+    },
+    {
+     "from": "src/audio/en/autotune-failed.wav",
+     "to": "scripts/loftypfd/audio/en/autotune-failed.wav",
+     "size": 38406,
+     "sha256": "24ba732543550718edf56da91e41f73e6b9ff83a66fec74925bac4111fb03fe4"
+    },
+    {
+     "from": "src/audio/en/autotune-success.wav",
+     "to": "scripts/loftypfd/audio/en/autotune-success.wav",
+     "size": 43110,
+     "sha256": "19b34231f291566705c3ced1f657184ce632f978e3a3983351a2788e79485982"
+    },
+    {
+     "from": "src/audio/en/bad-accel-health.wav",
+     "to": "scripts/loftypfd/audio/en/bad-accel-health.wav",
+     "size": 42880,
+     "sha256": "4ae34302d66b6524310d1c9dd2f3cff49555b0172ed81336d5af597b95ac3bc3"
+    },
+    {
+     "from": "src/audio/en/bad-baro-health.wav",
+     "to": "scripts/loftypfd/audio/en/bad-baro-health.wav",
+     "size": 36758,
+     "sha256": "94c4aafa3320994fd0d7f3cd2ff4468f5a23ee270540bdf84ebba3e62785e3b9"
+    },
+    {
+     "from": "src/audio/en/bad-compass-health.wav",
+     "to": "scripts/loftypfd/audio/en/bad-compass-health.wav",
+     "size": 36284,
+     "sha256": "1cca7a5a3af7d160e49cbf93291e360f7caa32f30091c29f0e5a397dec4f6a83"
+    },
+    {
+     "from": "src/audio/en/bad-gps-health.wav",
+     "to": "scripts/loftypfd/audio/en/bad-gps-health.wav",
+     "size": 43176,
+     "sha256": "e785cb51a9dac17f24a1ffac39e42de21a2bf75beeda4fac2b0bd2e27250cdee"
+    },
+    {
+     "from": "src/audio/en/bad-gyro-health.wav",
+     "to": "scripts/loftypfd/audio/en/bad-gyro-health.wav",
+     "size": 40554,
+     "sha256": "a59a282e3fafdb0b63bc4d50fee6a5976abddded5d09931434d38394ade3dea2"
+    },
+    {
+     "from": "src/audio/en/bad-lidar-health.wav",
+     "to": "scripts/loftypfd/audio/en/bad-lidar-health.wav",
+     "size": 36500,
+     "sha256": "fc0d7c00aa9d9b8ff654326563b5ea95462c328b8638c5d355d858ff00e3c672"
+    },
+    {
+     "from": "src/audio/en/bad-optflow-health.wav",
+     "to": "scripts/loftypfd/audio/en/bad-optflow-health.wav",
+     "size": 48086,
+     "sha256": "fa38397d2f416790179de8117b7202214d6753226117c16890da05e250a002b4"
+    },
+    {
+     "from": "src/audio/en/battery-critical.wav",
+     "to": "scripts/loftypfd/audio/en/battery-critical.wav",
+     "size": 31386,
+     "sha256": "a806847ebcde9ed909a8890a0d6a02faddf5292f54abf2079fbcef5c89f64584"
+    },
+    {
+     "from": "src/audio/en/battery-failsafe.wav",
+     "to": "scripts/loftypfd/audio/en/battery-failsafe.wav",
+     "size": 38452,
+     "sha256": "9770f2fe59d2606744a3c14e3578ead380c85191cc0686229c6771282590221b"
+    },
+    {
+     "from": "src/audio/en/battery-low.wav",
+     "to": "scripts/loftypfd/audio/en/battery-low.wav",
+     "size": 27874,
+     "sha256": "f1d36685ce25b9fabad20cfa3cba53a11d0d0d417c995ec55ffc45a8e480667d"
+    },
+    {
+     "from": "src/audio/en/battery.wav",
+     "to": "scripts/loftypfd/audio/en/battery.wav",
+     "size": 17192,
+     "sha256": "a8495eafc83ac94ccfd19f1289cf2aefa8df476660ae0ae5455b1402a1c35e06"
+    },
+    {
+     "from": "src/audio/en/crash.wav",
+     "to": "scripts/loftypfd/audio/en/crash.wav",
+     "size": 29590,
+     "sha256": "498bba60945756795807dd9907150f46bf1276e4f433dc6e9790eb3c1a2e4f33"
+    },
+    {
+     "from": "src/audio/en/disarmed.wav",
+     "to": "scripts/loftypfd/audio/en/disarmed.wav",
+     "size": 23156,
+     "sha256": "23061ef5af2f8b057e75a0eab768b52be04ca97450319a84a881ef3fa5ce1f7c"
+    },
+    {
+     "from": "src/audio/en/failsafe-cleared.wav",
+     "to": "scripts/loftypfd/audio/en/failsafe-cleared.wav",
+     "size": 35600,
+     "sha256": "d807c011ec5fb3b22c273dff577b39d0e687a3abc7aff74805402acd9ec4eaf7"
+    },
+    {
+     "from": "src/audio/en/failsafe-gcs.wav",
+     "to": "scripts/loftypfd/audio/en/failsafe-gcs.wav",
+     "size": 47752,
+     "sha256": "9464a264847b6b75a22db4f2cf5a7ea4fda755fe0fc0ee9a1d30aaf310b62c4d"
+    },
+    {
+     "from": "src/audio/en/failsafe-radio.wav",
+     "to": "scripts/loftypfd/audio/en/failsafe-radio.wav",
+     "size": 37508,
+     "sha256": "e5be6ae0e3852d9a044212798d74d0d8836c2236fd816caee7afadfa2fbb6dd5"
+    },
+    {
+     "from": "src/audio/en/failsafe-throttle.wav",
+     "to": "scripts/loftypfd/audio/en/failsafe-throttle.wav",
+     "size": 33602,
+     "sha256": "d0a4a20fcedb6da66103ad0374a274d718e7fcad455a5861dc30a2bd969ebb30"
+    },
+    {
+     "from": "src/audio/en/failsafe.wav",
+     "to": "scripts/loftypfd/audio/en/failsafe.wav",
+     "size": 19786,
+     "sha256": "04eb8e632cd5e7a33ec46d1887e2c71ef09f8bf334aa38efbb5d12f085e5f941"
+    },
+    {
+     "from": "src/audio/en/fence-breached.wav",
+     "to": "scripts/loftypfd/audio/en/fence-breached.wav",
+     "size": 27634,
+     "sha256": "13cdbae5494e0fdd0145f4ab39fd1e374ddf509f28645ad83b16b019ccdbd55c"
+    },
+    {
+     "from": "src/audio/en/gps-fix.wav",
+     "to": "scripts/loftypfd/audio/en/gps-fix.wav",
+     "size": 46352,
+     "sha256": "1af45f510921d38ecd6b5eb2e528742f7b83b0e930deacaf5d898df45dd226f0"
+    },
+    {
+     "from": "src/audio/en/gps-glitch.wav",
+     "to": "scripts/loftypfd/audio/en/gps-glitch.wav",
+     "size": 33892,
+     "sha256": "7dd667bb700bf8c6c9ccc832b590ea105e82a95d3aa9947e5b7f39c94545f92f"
+    },
+    {
+     "from": "src/audio/en/gps-lost.wav",
+     "to": "scripts/loftypfd/audio/en/gps-lost.wav",
+     "size": 44394,
+     "sha256": "38e0ec03755f064b8e579d5ea68336761347ef818ccc328530dcb558061e0f20"
+    },
+    {
+     "from": "src/audio/en/hard-landing.wav",
+     "to": "scripts/loftypfd/audio/en/hard-landing.wav",
+     "size": 41024,
+     "sha256": "39de47cc4224bbe79e82cf592cbfe2f8af3eb95968d1c063ad654f0ba4b8e68c"
+    },
+    {
+     "from": "src/audio/en/mission-complete.wav",
+     "to": "scripts/loftypfd/audio/en/mission-complete.wav",
+     "size": 33188,
+     "sha256": "61cf3491278e087caad62ecb5018b5ce84ef495ea6a45385262c091b8eb4326e"
+    },
+    {
+     "from": "src/audio/en/mode-acro.wav",
+     "to": "scripts/loftypfd/audio/en/mode-acro.wav",
+     "size": 24174,
+     "sha256": "28d1708e55caa2cc7da11f9dbff2dc96edfea1b33c19c5e52fe7c89da005e94a"
+    },
+    {
+     "from": "src/audio/en/mode-althold.wav",
+     "to": "scripts/loftypfd/audio/en/mode-althold.wav",
+     "size": 39162,
+     "sha256": "691bd0ee74eea008be8d35bc6f60c24b05da315022753d60e33b2f7af14642ac"
+    },
+    {
+     "from": "src/audio/en/mode-auto-rtl.wav",
+     "to": "scripts/loftypfd/audio/en/mode-auto-rtl.wav",
+     "size": 55816,
+     "sha256": "4e7bb7838283881ed54513a43e2d87d8d8356e27396a9a97167d1bc3ee0b33fa"
+    },
+    {
+     "from": "src/audio/en/mode-auto.wav",
+     "to": "scripts/loftypfd/audio/en/mode-auto.wav",
+     "size": 27584,
+     "sha256": "66cf66194f9570af6c98e89133f17960ad9a84e248ea8ab374972735c0fb7cd8"
+    },
+    {
+     "from": "src/audio/en/mode-autoland.wav",
+     "to": "scripts/loftypfd/audio/en/mode-autoland.wav",
+     "size": 35264,
+     "sha256": "c2bbddbde70638cd5594622fb1b3545a71b74ffa4cf3b7a9ef61b224b8ba2fd2"
+    },
+    {
+     "from": "src/audio/en/mode-autotune.wav",
+     "to": "scripts/loftypfd/audio/en/mode-autotune.wav",
+     "size": 36058,
+     "sha256": "d26b3b18a8aba3da10ba7c480897e644f92efd8e343d77ec44277b9443ce0eb1"
+    },
+    {
+     "from": "src/audio/en/mode-avoid-adsb.wav",
+     "to": "scripts/loftypfd/audio/en/mode-avoid-adsb.wav",
+     "size": 46506,
+     "sha256": "ae86d0477cd2cc84b5946878c5f3b94591f3a4792afce70020b8fa33f7be23ba"
+    },
+    {
+     "from": "src/audio/en/mode-brake.wav",
+     "to": "scripts/loftypfd/audio/en/mode-brake.wav",
+     "size": 22440,
+     "sha256": "e9b3c526d3d34aef316c8332ce4b422a5ce2a6cd5747051f9923a04ae621759a"
+    },
+    {
+     "from": "src/audio/en/mode-circle.wav",
+     "to": "scripts/loftypfd/audio/en/mode-circle.wav",
+     "size": 26694,
+     "sha256": "2ef3b0d305011ad5d77a1c46480ba3065eca6a5c173a7a416e177f4cd7f21be8"
+    },
+    {
+     "from": "src/audio/en/mode-cruise.wav",
+     "to": "scripts/loftypfd/audio/en/mode-cruise.wav",
+     "size": 19342,
+     "sha256": "cec1cbad7fae647e0da63dd8e7613435eb35bfc693430847a02dd7ff24436abe"
+    },
+    {
+     "from": "src/audio/en/mode-dock.wav",
+     "to": "scripts/loftypfd/audio/en/mode-dock.wav",
+     "size": 23270,
+     "sha256": "83b601b85e62ad7aea93def16d201a28519094bf883111116658795dc37dbe58"
+    },
+    {
+     "from": "src/audio/en/mode-drift.wav",
+     "to": "scripts/loftypfd/audio/en/mode-drift.wav",
+     "size": 22802,
+     "sha256": "9531302e5e86eee5c279c9093f3ca6c414de1a10db214e6574cedc86e8207def"
+    },
+    {
+     "from": "src/audio/en/mode-fbwa.wav",
+     "to": "scripts/loftypfd/audio/en/mode-fbwa.wav",
+     "size": 41750,
+     "sha256": "91b760e3af2a6898f9c191a1e6b8668dd94284758405b34fca7a62da5fd26992"
+    },
+    {
+     "from": "src/audio/en/mode-fbwb.wav",
+     "to": "scripts/loftypfd/audio/en/mode-fbwb.wav",
+     "size": 44444,
+     "sha256": "8f90d834de321efe399e6996e1e1e632eac1c555f6fe4870ba12173869d0cf61"
+    },
+    {
+     "from": "src/audio/en/mode-flip.wav",
+     "to": "scripts/loftypfd/audio/en/mode-flip.wav",
+     "size": 25628,
+     "sha256": "76a76c2409ce43dd61f554f283477dcd514c983de49457ecba80cebe2423e0e2"
+    },
+    {
+     "from": "src/audio/en/mode-flowhold.wav",
+     "to": "scripts/loftypfd/audio/en/mode-flowhold.wav",
+     "size": 32040,
+     "sha256": "90426f7c7580abe1ff86527cca8e89367c07263e50c114b8f8a3975acacd1aae"
+    },
+    {
+     "from": "src/audio/en/mode-follow.wav",
+     "to": "scripts/loftypfd/audio/en/mode-follow.wav",
+     "size": 24260,
+     "sha256": "62323bbde20222c3604a86f4591aa55918ba8f9b54e43f5bb2bed74ec2cdd23d"
+    },
+    {
+     "from": "src/audio/en/mode-guided-nogps.wav",
+     "to": "scripts/loftypfd/audio/en/mode-guided-nogps.wav",
+     "size": 49416,
+     "sha256": "46e254c1882faedc61927474a690492224c26f401e05335aeb95b57b63aaabcb"
+    },
+    {
+     "from": "src/audio/en/mode-guided.wav",
+     "to": "scripts/loftypfd/audio/en/mode-guided.wav",
+     "size": 27396,
+     "sha256": "3d83c70941a763953f14bfd3030cd9e513cda5e5caa31f7d0aa9d367b8e2e7c4"
+    },
+    {
+     "from": "src/audio/en/mode-heli-autorotate.wav",
+     "to": "scripts/loftypfd/audio/en/mode-heli-autorotate.wav",
+     "size": 39564,
+     "sha256": "c788f09fd6dc6ed47b6d71d35fd1049a1b9599ab7e3d9a6157f75663d8dc7373"
+    },
+    {
+     "from": "src/audio/en/mode-hold.wav",
+     "to": "scripts/loftypfd/audio/en/mode-hold.wav",
+     "size": 23878,
+     "sha256": "327901cfc98a67389b7e32294b8d299ed327343112a8bf08d3af517b49bf4273"
+    },
+    {
+     "from": "src/audio/en/mode-initializing.wav",
+     "to": "scripts/loftypfd/audio/en/mode-initializing.wav",
+     "size": 40466,
+     "sha256": "72b5e87e25758f2f75a0df5de37cb51f7ee66c98dc48c18bcc7fcb796ed694f2"
+    },
+    {
+     "from": "src/audio/en/mode-land.wav",
+     "to": "scripts/loftypfd/audio/en/mode-land.wav",
+     "size": 24170,
+     "sha256": "1be90fea98fb363d09fcbd3461f52c2f6241f0e60b006004c1af7066ee97aa27"
+    },
+    {
+     "from": "src/audio/en/mode-loiter-to-qland.wav",
+     "to": "scripts/loftypfd/audio/en/mode-loiter-to-qland.wav",
+     "size": 47858,
+     "sha256": "5e2b5f63547bd95220ba89e190df14b56c17d34fa3dca1c162b9bccd708e1d3d"
+    },
+    {
+     "from": "src/audio/en/mode-loiter.wav",
+     "to": "scripts/loftypfd/audio/en/mode-loiter.wav",
+     "size": 29440,
+     "sha256": "b7832fab0af738f74fbfceb457e5916b5df27894aeda0fcb81ca3e07d6bfbf09"
+    },
+    {
+     "from": "src/audio/en/mode-manual.wav",
+     "to": "scripts/loftypfd/audio/en/mode-manual.wav",
+     "size": 27382,
+     "sha256": "c721a8fda9ed5b0f01433385ade2b779fed0b1d5370b028372b3c957d87080c1"
+    },
+    {
+     "from": "src/audio/en/mode-poshold.wav",
+     "to": "scripts/loftypfd/audio/en/mode-poshold.wav",
+     "size": 36432,
+     "sha256": "c8c1108d511bce5466805a547bb87868cafacdd918b66768fbd7b0cab87ea417"
+    },
+    {
+     "from": "src/audio/en/mode-qacro.wav",
+     "to": "scripts/loftypfd/audio/en/mode-qacro.wav",
+     "size": 28870,
+     "sha256": "80bbde8d09b76ec117dff850581a8451b620166ea14a2d761b3f9da4a3a4bbe3"
+    },
+    {
+     "from": "src/audio/en/mode-qautotune.wav",
+     "to": "scripts/loftypfd/audio/en/mode-qautotune.wav",
+     "size": 34960,
+     "sha256": "e772faff1294bf082bbc31270facab26b276af73af1f28ec6dd45b065ad21676"
+    },
+    {
+     "from": "src/audio/en/mode-qhover.wav",
+     "to": "scripts/loftypfd/audio/en/mode-qhover.wav",
+     "size": 31522,
+     "sha256": "c918d631012587ed23d74c89a00ca7743b2e86cef0925f98c86613ea635daa9d"
+    },
+    {
+     "from": "src/audio/en/mode-qland.wav",
+     "to": "scripts/loftypfd/audio/en/mode-qland.wav",
+     "size": 30854,
+     "sha256": "ce0171891f2fe402b6272830e0183418bc66f958f5291147e6c6b51ebe3b1060"
+    },
+    {
+     "from": "src/audio/en/mode-qloiter.wav",
+     "to": "scripts/loftypfd/audio/en/mode-qloiter.wav",
+     "size": 33816,
+     "sha256": "302531ae4ecc784428e1977fb6baf7acdc23683a01bcc09737b4cf566a12d91c"
+    },
+    {
+     "from": "src/audio/en/mode-qrtl.wav",
+     "to": "scripts/loftypfd/audio/en/mode-qrtl.wav",
+     "size": 47174,
+     "sha256": "d53a4847cab562edc148b9279b58cb074d2927a86ed1e247e0e8399ec0681423"
+    },
+    {
+     "from": "src/audio/en/mode-qstabilize.wav",
+     "to": "scripts/loftypfd/audio/en/mode-qstabilize.wav",
+     "size": 46062,
+     "sha256": "a79f52e6cd94c78ef12976be5fa61fdc94cdd45382693092eb4ba42cf731ed50"
+    },
+    {
+     "from": "src/audio/en/mode-rtl.wav",
+     "to": "scripts/loftypfd/audio/en/mode-rtl.wav",
+     "size": 43056,
+     "sha256": "441bf54258d2f1ff0e45942603ae90e7ed47f536daaf9f4da4d7b8e70c1702a7"
+    },
+    {
+     "from": "src/audio/en/mode-simple.wav",
+     "to": "scripts/loftypfd/audio/en/mode-simple.wav",
+     "size": 28004,
+     "sha256": "eb444ce02a8eeacb94ab74e2d47552079647d94637cb3e1b6758d9fbb69b298b"
+    },
+    {
+     "from": "src/audio/en/mode-smart-rtl.wav",
+     "to": "scripts/loftypfd/audio/en/mode-smart-rtl.wav",
+     "size": 50244,
+     "sha256": "2e308811e8b3ff1d02017c15edf15b04803a1b2367bcc521c6008318d006bda6"
+    },
+    {
+     "from": "src/audio/en/mode-sport.wav",
+     "to": "scripts/loftypfd/audio/en/mode-sport.wav",
+     "size": 26598,
+     "sha256": "6b8db8c3e0cda4b84196e497fd9f5e7829c1c6325139330586c332972b1c26ac"
+    },
+    {
+     "from": "src/audio/en/mode-stabilize.wav",
+     "to": "scripts/loftypfd/audio/en/mode-stabilize.wav",
+     "size": 39698,
+     "sha256": "07ca9d81ef75d26b6596f3baf9e77a7d24b60f865e2b956b5bcad667c8b987de"
+    },
+    {
+     "from": "src/audio/en/mode-steering.wav",
+     "to": "scripts/loftypfd/audio/en/mode-steering.wav",
+     "size": 26000,
+     "sha256": "e5db58e14834b7de96ede1f5a1fb924e78eb7bc688b0d4060e8f0ab0234e6361"
+    },
+    {
+     "from": "src/audio/en/mode-systemid.wav",
+     "to": "scripts/loftypfd/audio/en/mode-systemid.wav",
+     "size": 36496,
+     "sha256": "c3436c7ee8c9320429602a481555a9a84c41ac3c2e70fdc7f341b33d9f4fcee8"
+    },
+    {
+     "from": "src/audio/en/mode-takeoff.wav",
+     "to": "scripts/loftypfd/audio/en/mode-takeoff.wav",
+     "size": 26528,
+     "sha256": "682479b9696f72c6e5c9606e7767fa7578aa3726d05a33b0d31ecd6f9103ab13"
+    },
+    {
+     "from": "src/audio/en/mode-thermal.wav",
+     "to": "scripts/loftypfd/audio/en/mode-thermal.wav",
+     "size": 27632,
+     "sha256": "c35bc7bd05cc8af98ed3224f183e8544d1d5496eda8a62cdfd9375ced37848eb"
+    },
+    {
+     "from": "src/audio/en/mode-throw.wav",
+     "to": "scripts/loftypfd/audio/en/mode-throw.wav",
+     "size": 23102,
+     "sha256": "cf951f1802f92b41410fd80171f05c714021fe3a2d09620858ce67dbfce512e2"
+    },
+    {
+     "from": "src/audio/en/mode-training.wav",
+     "to": "scripts/loftypfd/audio/en/mode-training.wav",
+     "size": 26230,
+     "sha256": "f46e9df70088cfccfaa1c608490bdcaba7de8abdb17aa9e5cec276c2ad2ab33f"
+    },
+    {
+     "from": "src/audio/en/mode-turtle.wav",
+     "to": "scripts/loftypfd/audio/en/mode-turtle.wav",
+     "size": 27332,
+     "sha256": "0a796385e93ae2b46271b6f9aacfa6649c96910c885e94f06bb347d3ffb517dc"
+    },
+    {
+     "from": "src/audio/en/mode-zigzag.wav",
+     "to": "scripts/loftypfd/audio/en/mode-zigzag.wav",
+     "size": 29442,
+     "sha256": "87a1f3c2cfc3716a066007eb8c8a41d440ec40bfe578d1f65f0588154baf4d55"
+    },
+    {
+     "from": "src/audio/en/transition-done.wav",
+     "to": "scripts/loftypfd/audio/en/transition-done.wav",
+     "size": 32096,
+     "sha256": "52a161ef1c1e83ce998b446cadac05aab494612959533e8734564626afafdcc2"
+    },
+    {
+     "from": "src/audio/en/transition-failed.wav",
+     "to": "scripts/loftypfd/audio/en/transition-failed.wav",
+     "size": 36168,
+     "sha256": "def0c7ce7270b8b1ab71cfa43636492b63f7523dfc0d96d39363e011e5409003"
+    },
+    {
+     "from": "src/audio/en/tune-pitch-done.wav",
+     "to": "scripts/loftypfd/audio/en/tune-pitch-done.wav",
+     "size": 47836,
+     "sha256": "804aa7635aff3b69e352844a462a37800f8b36a8a53f33b9d2b172c6d203ec36"
+    },
+    {
+     "from": "src/audio/en/tune-roll-done.wav",
+     "to": "scripts/loftypfd/audio/en/tune-roll-done.wav",
+     "size": 45132,
+     "sha256": "7b05059e1acb5786effe7a53f5ed4877061b57fe3f2ef8dd8bb23d51242193e9"
+    },
+    {
+     "from": "src/audio/en/tune-yaw-done.wav",
+     "to": "scripts/loftypfd/audio/en/tune-yaw-done.wav",
+     "size": 39918,
+     "sha256": "a8dd84187a03b9bc92522299150cca59b8da27807c68b222b66f4abdfe3ba448"
+    },
+    {
+     "from": "src/audio/en/CREDITS.txt",
+     "to": "scripts/loftypfd/audio/en/CREDITS.txt",
+     "size": 647,
+     "sha256": "020e56ee8b514049915cfc77828f1c06af05831e7db37b16909d1b2e91d28702"
+    }
+   ],
+   "owned": [
+    "scripts/loftypfd/core",
+    "scripts/loftypfd/audio/en"
+   ],
+   "remove": [
+    "scripts/loftypfd/**/*.luac",
+    "scripts/loftypfd/replay.txt",
+    "scripts/loftypfd/menu.txt",
+    "scripts/loftypfd/capture.on"
+   ]
+  }
+ }
+}

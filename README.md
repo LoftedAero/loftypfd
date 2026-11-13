@@ -10,8 +10,17 @@ firmware.
 - **Setup:** browses and edits the settings of any CRSF device (transmitter module,
   receiver, flight controller). A guided setup for the gyro is planned.
 
-Status: **in development.** It runs in the Ethos and EdgeTX simulators against recorded
-ArduPilot SITL flights and the gyro's SITL menu; it has not been tested on a radio yet.
+Status: **preview.** It runs in the Ethos and EdgeTX simulators against recorded ArduPilot
+SITL flights and the gyro's SITL menu, and on one X20 on the bench over S.Port. ExpressLRS and
+EdgeTX haven't been tried on a real radio yet.
+
+## Installing
+
+Download the zip for your radio from the
+[latest release](https://github.com/LoftedAero/loftypfd/releases/latest) and unzip it onto the
+radio's SD card. [Installing and testing Lofty PFD](docs/installing.md) has the steps for each
+radio, ArduPilot's settings, and how to report issues. Lofty GCS will install and update it
+too.
 
 ## Development
 
@@ -24,7 +33,8 @@ py -3.14 -m venv .venv
 .venv/Scripts/python tools/test.py
 ```
 
-See [CLAUDE.md](CLAUDE.md) and [docs/architecture.md](docs/architecture.md).
+See [CLAUDE.md](CLAUDE.md), [docs/architecture.md](docs/architecture.md) and, for a release,
+[docs/releasing.md](docs/releasing.md).
 
 ## License
 

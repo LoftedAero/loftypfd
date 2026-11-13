@@ -419,6 +419,36 @@ pilot picks the radio's SD card, and the GCS finds Lofty PFD on it (`WIDGETS/Lof
 - The maps live in the widget's folder, so updating Lofty PFD by copying files over keeps
   them; deleting the folder first does not.
 
+## Installing from Lofty GCS (`manifest.json`)
+
+Lofty GCS installs and updates Lofty PFD on a radio's card, downloading the latest release
+(Eric's choice). A release is a version tag on this public repository; nothing built is
+committed, since what goes on a radio is the source files, placed per radio.
+
+- **`manifest.json`** at the repository's root lists, for each radio, every file
+  (`from` in the repository, `to` on the card, `size`, `sha256`) and the install rules.
+  `tools/build.py --manifest` writes it from the same plan the build and `--sd` use
+  (`plan()`, `rules()`), and `tools/test.py` fails when it is stale. `VERSION` holds the
+  version; the tag is `v` and that.
+- **Fetching:** GitHub's API gives the latest release's tag
+  (`api.github.com/repos/LoftedAero/loftypfd/releases/latest`), and each file comes from
+  `raw.githubusercontent.com/LoftedAero/loftypfd/<tag>/<from>` (the manifest's `files`
+  template). Both answer any page; a release's attached files do not (GitHub's download
+  redirect sends no CORS header), so the installer works in Chrome as well as the desktop
+  app. Text is stored with LF, so a file's hash on disk is the one GitHub serves.
+- **Installing** (`rules()`): every listed file is written; in each `owned` folder a file the
+  release no longer lists is removed; files matching `remove` go (the `.luac` both radios
+  compile beside a script, which could run in place of the new source, and what only a
+  development build adds); everything else stays, the maps and captures among it. Download
+  and check every file before touching the card, so a failed download changes nothing.
+- **Which radio:** the folder Lofty PFD is installed in (`folder`), else the card's `signs`
+  (an X20's SD card and internal storage hold `sdcard.cpuid` and `radio.cpuid`; an EdgeTX
+  card holds `RADIO/radio.yml`); where neither tells, the pilot says.
+- **A release** ([releasing.md](releasing.md)): bump `VERSION`, run `tools/build.py
+  --manifest`, commit, tag `v<VERSION>`, push the tag, and publish it as a GitHub release
+  (not a pre-release, which `latest` skips) with the zips `tools/build.py --package` makes,
+  for installing by hand.
+
 ## Platforms
 
 ### Ethos (1.6.6 X20 Pro simulator; FrSky's 1.6.8 Lua reference)

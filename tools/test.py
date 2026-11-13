@@ -6,6 +6,8 @@
 - src/core/theme.lua is what tools/theme.py generates from them;
 - every phrase the radios can say has its clip, made from its current words
   (tools/voice.py);
+- manifest.json, what Lofty GCS installs, lists this source tree
+  (tools/build.py --manifest);
 - every Lua file compiles on the Lua its radio runs: EdgeTX is 5.3, Ethos
   is 5.4, and the shared core must run on both;
 - the core's tests pass on both.
@@ -22,6 +24,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 
+import build  # noqa: E402
 import theme  # noqa: E402
 import voice  # noqa: E402
 
@@ -67,6 +70,11 @@ def check_clips():
         failures.append("clips no phrase uses: %s; run tools/voice.py" % ", ".join(extra))
 
 
+def check_manifest():
+    if not build.MANIFEST.exists() or build.MANIFEST.read_text(encoding="utf-8") != build.manifest():
+        failures.append("manifest.json is stale: run tools/build.py --manifest")
+
+
 def check_compiles():
     runtimes = {}
     for tree, versions in TREES.items():
@@ -103,6 +111,7 @@ def main():
     check_vendored()
     check_theme()
     check_clips()
+    check_manifest()
     check_compiles()
     passed = run_tests()
     for f in failures:

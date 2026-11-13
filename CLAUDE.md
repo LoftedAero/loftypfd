@@ -71,7 +71,9 @@ py -3.14 -m venv .venv && .venv/Scripts/python -m pip install -r tools/requireme
 .venv/Scripts/python tools/voice.py       make the voice clips in src/audio/en
 .venv/Scripts/python tools/sitl.py record out/flight.txt [--passthrough]
 .venv/Scripts/python tools/sitl.py menu out/gyro-menu.txt
-.venv/Scripts/python tools/build.py [--replay out/flight-crsf.txt] [--menu out/gyro-menu.txt] [--maps DIR] [--capture] [--edgetx] [--ethos] [--sd DRIVE]
+.venv/Scripts/python tools/build.py [--replay out/flight-crsf.txt] [--menu out/gyro-menu.txt] [--maps DIR] [--capture] [--edgetx] [--ethos] [--sd DRIVE [--radio ethos|edgetx]]
+.venv/Scripts/python tools/build.py --manifest   write manifest.json, what Lofty GCS installs (a release: docs/releasing.md)
+.venv/Scripts/python tools/build.py --package    the release's zips, for installing by hand
 .venv/Scripts/python tools/hwtest.py install | run elrs|sport | analyze DIR | rehearse elrs|sport   (docs/hardware-test.md)
 node tools/ethos-sim/run.cjs --models out/ethos/models [--ms 8000] [--tap X,Y@MS] [--every MS] [--pull DIR]
 "C:\Program Files\EdgeTX\Companion 2.12\bin\simulator.exe" -p 0 -w sd     the TX15 simulator
