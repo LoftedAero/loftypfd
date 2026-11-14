@@ -23,8 +23,13 @@ local CMD = devices.COMMAND
 local floor, max, min = math.floor, math.max, math.min
 
 -- Devices are asked who they are this often while the device list shows.
-local PING_S = 2
--- Readings in the open folder (info entries) are read again this often.
+-- Disarmed, ArduPilot stops its telemetry until 5 s after the last menu
+-- request, and its answer to a ping restarts that wait (AP_CRSF_Telem.cpp),
+-- so pings are spaced wider than 5 s then.
+local PING_S, PING_DISARMED_S = 2, 6
+-- Readings in the open folder (info entries) are read again this often, and
+-- only while armed: disarmed, each read stops the telemetry for 5 s, which
+-- a 2 s refresh would never let come back.
 local INFO_S = 2
 
 local App = {}
@@ -209,14 +214,8 @@ end
 -- Every entry of the open folder read again, after a command that may have
 -- changed them (a template, learned sticks, an orientation).
 local function reloadFolder(self, p)
-  if p.kind ~= "folder" then
-    return
-  end
-  for _, row in ipairs(rows(self, p)) do
-    self.client:refresh(p.address, row.entry.id)
-    if row.learn then
-      self.client:refresh(p.address, row.learn.id)
-    end
+  if p.kind == "folder" then
+    self.client:open(p.address, p.folder)
   end
 end
 
@@ -244,11 +243,10 @@ local function activate(self, p, row)
   local e = row.entry
   if e.type == F.folder then
     self.stack[#self.stack + 1] = { kind = "folder", address = p.address, folder = e.id, title = e.name, focus = 1, scroll = 0 }
-    -- Read again, shown as they were meanwhile: a write elsewhere can change
-    -- them (the gyro's Wing type sets four channels' functions).
-    for _, child in ipairs(self.client:children(p.address, e.id)) do
-      self.client:refresh(p.address, child.id)
-    end
+    -- Read now, and again on each opening, shown as they were meanwhile: a
+    -- write elsewhere can change them (the gyro's Wing type sets four
+    -- channels' functions).
+    self.client:open(p.address, e.id)
   elseif e.type == F.command then
     runCommand(self, p, e)
   elseif focusable(row) then
@@ -265,14 +263,15 @@ local function answered(self)
   end
 end
 
---- Sends what is due and follows the device. Call every cycle.
-function App:update(now)
+--- Sends what is due and follows the device. Call every cycle; `armed` is
+--- the aircraft's state, where it is known to be armed.
+function App:update(now, armed)
   local p = page(self)
   if p.kind == "devices" and now >= self.nextPing then
-    self.nextPing = now + PING_S
+    self.nextPing = now + (armed and PING_S or PING_DISARMED_S)
     self.client:ping()
   end
-  if p.kind == "folder" and not self.dialog and not self.edit and now >= self.nextInfo then
+  if p.kind == "folder" and armed and not self.dialog and not self.edit and now >= self.nextInfo then
     self.nextInfo = now + INFO_S
     for _, row in ipairs(rows(self, p)) do
       if row.entry.type == F.info and #self.client.jobs == 0 then
@@ -483,7 +482,7 @@ local function bar(self, c, w, sc, p)
   local title = p.kind == "devices" and "Devices" or p.title or "-"
   local right = 0
   if p.kind == "folder" then
-    local loaded, count = self.client:progress(p.address)
+    local loaded, count = self.client:progress(p.address, p.folder)
     if loaded < count then
       local text = loaded .. "/" .. count
       c.text(w - 8 * sc, h / 2, text, 11 * sc, B.ink3, "right")

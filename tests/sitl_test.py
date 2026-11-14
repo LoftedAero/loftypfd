@@ -6,8 +6,9 @@ Needs the gyro SITL build in WSL (~/ardupilot-gyro/build/sitl/bin/arduplane,
 built with --extra-hwdef=Tools/gyro/sitl-gyro.hwdef) and nothing else on
 ports 5760 and 5765. Two runs, about two minutes each:
 
-1. Plain CRSF, as the gyro's defaults send it. The device menu loads in
-   full; a selection and a number are written, checked through MAVLink and
+1. Plain CRSF, as the gyro's defaults send it. The device menu's top level
+   loads, with how long telemetry stops meanwhile, and each folder as it
+   opens; a selection and a number are written, checked through MAVLink and
    put back; a command runs and is canceled. Then a flight, with what the
    radio decodes compared against ArduPilot's own MAVLink.
 2. Passthrough over CRSF (RC_OPTIONS bit 8), the same flight comparison.
@@ -30,10 +31,23 @@ def check(name, ok, detail=""):
     print(("PASS " if ok else "FAIL ") + name + ("  " + str(detail) if detail != "" else ""), flush=True)
 
 
-def find(radio, folder_name, name):
+def opened(sitl, radio, folder, limit=30):
+    """Opens a folder and waits until its entries have loaded."""
+    radio.call("open", FC, folder)
+    end = time.time() + limit
+    while time.time() < end:
+        radio.pump(sitl.crsf, 0.2)
+        done, total = radio.call("progress", FC, folder)
+        if total > 0 and done == total:
+            return True
+    return False
+
+
+def find(sitl, radio, folder_name, name):
     top = radio.call("children", FC, 0)
     for i in range(1, len(top) + 1):
         if top[i]["name"] == folder_name:
+            opened(sitl, radio, top[i]["id"])
             kids = radio.call("children", FC, top[i]["id"])
             for k in range(1, len(kids) + 1):
                 if kids[k]["name"] == name:
@@ -49,22 +63,43 @@ def device_menu(sitl, radio):
     check("the flight controller answers a ping", dev is not None, dev and dev["name"])
     if dev is None:
         return
+    # Opening the device reads entry 0 and the top level it lists. ArduPilot
+    # stops its telemetry while menu reads come and for 5 s after the last
+    # (AP_CRSF_Telem::adjust_packet_weight), so the stop is measured as the
+    # longest wait for an attitude frame.
     radio.call("load", FC)
-    started = time.time()
-    while time.time() - started < 90:
-        radio.pump(sitl.crsf, 1)
-        loaded, total = radio.call("progress", FC)
-        if loaded == total:
+    started = last_attitude = time.time()
+    longest = 0.0
+    loaded_at = None
+    while time.time() - started < 60:
+        radio.call("update", radio.now())
+        for f in sitl.crsf.take():
+            if f[1] == 0x1E:
+                longest = max(longest, f[0] - last_attitude)
+                last_attitude = f[0]
+            radio.feed([f])
+        if loaded_at is None:
+            loaded, total = radio.call("progress", FC, 0)
+            if total > 0 and loaded == total:
+                loaded_at = time.time()
+        elif last_attitude > loaded_at:
             break
-    loaded, total = radio.call("progress", FC)
-    check("every entry loads", loaded == total and total > 0,
-          "%d of %d in %.0f s" % (loaded, total, time.time() - started))
+        time.sleep(0.02)
+    loaded, total = radio.call("progress", FC, 0)
+    root = dev["entries"][0]
+    listed = [root["children"][i] for i in range(1, len(root["children"]) + 1)] if root else []
+    check("entry 0 lists the top level", root is not None and root["name"] == "root" and len(listed) == 8, listed)
+    check("the top level loads", loaded == total and total > 0,
+          "%d of %d in %.1f s" % (loaded, total, (loaded_at or time.time()) - started))
+    everything, count = radio.call("progress", FC)
+    check("and nothing else", everything == total, "%d of %d entries read" % (everything, count))
+    check("telemetry stops for less than 9 s", longest < 9, "attitude stopped for %.1f s" % longest)
     top = radio.call("children", FC, 0)
     names = [top[i]["name"] for i in range(1, len(top) + 1)]
     check("top level is the gyro's", names == ["Status", "1 Calibration", "2 Radio", "3 Flight modes",
                                                "4 Outputs", "5 Failsafe", "6 Tuning", "Tools"], names)
 
-    link_loss = find(radio, "5 Failsafe", "Link loss")
+    link_loss = find(sitl, radio, "5 Failsafe", "Link loss")
     before = sitl.mav.param("FS_LONG_ACTN")
     radio.call("write", FC, link_loss["id"], 1)    # "RTL if GPS"
     radio.pump(sitl.crsf, 3)
@@ -75,7 +110,7 @@ def device_menu(sitl, radio):
     radio.call("write", FC, link_loss["id"], 0 if before == 2 else 1)
     radio.pump(sitl.crsf, 3)
 
-    rate = find(radio, "6 Tuning", "ACRO roll rate")
+    rate = find(sitl, radio, "6 Tuning", "ACRO roll rate")
     before = sitl.mav.param("ACRO_ROLL_RATE")
     radio.call("write", FC, rate["id"], 250)
     radio.pump(sitl.crsf, 3)
@@ -84,7 +119,7 @@ def device_menu(sitl, radio):
     radio.call("write", FC, rate["id"], int(before))
     radio.pump(sitl.crsf, 3)
 
-    cmd = find(radio, "3 Flight modes", "Check mode switch")
+    cmd = find(sitl, radio, "3 Flight modes", "Check mode switch")
     radio.call("command", FC, cmd["id"], 1)
     radio.pump(sitl.crsf, 2)
     e = client.devices[FC]["entries"][cmd["id"]]
@@ -179,7 +214,7 @@ def browser(sitl, radio, client):
     check("the browser opens the gyro", "5 Failsafe" in ui.screen(app).split("|"), ui.screen(app))
 
     tap("6 Tuning")
-    rate = find(radio, "6 Tuning", "ACRO roll rate")
+    rate = find(sitl, radio, "6 Tuning", "ACRO roll rate")
     before = sitl.mav.param("ACRO_ROLL_RATE")
     tap("ACRO roll rate")
     editing = app.edit is not None
@@ -205,12 +240,12 @@ def browser(sitl, radio, client):
     check("a command's prompt shows in the browser's dialog", app.dialog is not None and "MANUAL" in text, text[-120:])
     event("back")
     pump(1)
-    e = client.devices[FC]["entries"][find(radio, "3 Flight modes", "Check mode switch")["id"]]
+    e = client.devices[FC]["entries"][find(sitl, radio, "3 Flight modes", "Check mode switch")["id"]]
     check("Back cancels the command", app.dialog is None and e["status"] == 0, e["status"])
 
     event("back")
     tap("2 Radio")
-    pump(1)
+    pump(3)
     shown = ui.screen(app).split("|")
     check("each channel's Learn command shares its row",
           shown.count("Learn") == 5 and "Arm switch" in shown and "Learn sticks" in shown
@@ -227,7 +262,7 @@ def browser(sitl, radio, client):
     # read again on opening, shows the new function.
     event("back")
     tap("4 Outputs")
-    pump(1)
+    pump(3)
     tap("Wing type")
     event("next")
     event("enter")
@@ -235,7 +270,7 @@ def browser(sitl, radio, client):
     got = sitl.mav.param("SERVO1_FUNCTION")
     check("Wing type sets the outputs as it is written", got == 77 and "Flying wing" in ui.screen(app).split("|"), got)
     tap("Channel 1")
-    pump(2)
+    pump(3)
     shown = ui.screen(app).split("|")
     check("the channel shows its new function", "Elevon L" in shown, shown)
     event("back")

@@ -12,13 +12,95 @@ local crsf = use("crsf")
 
 local M = {}
 
-M.NAMES = {
-  "Ptch", "Roll", "Yaw",
-  "GPS", "GSpd", "Hdg", "GAlt", "Sats",
-  "RxBt", "Curr", "Capa", "Bat%",
-  "Alt", "VSpd", "FM",
-  "1RSS", "2RSS", "ANT", "RQly", "RSNR",
+-- The sensors read, by EdgeTX 2.12's names, and where EdgeTX keeps each:
+-- the CRSF frame type it came in (the sensor's id) and its place in that
+-- frame (its instance). Those are the same in every version; the names are
+-- not, since 2.11 calls the GPS and the baro altitude both "Alt", a model
+-- keeps the names its sensors were discovered with, and a pilot can rename
+-- any of them. So a sensor is found by where it is kept.
+M.CRSF = {
+  Ptch = { 0x1E, 0 }, Roll = { 0x1E, 1 }, Yaw = { 0x1E, 2 },
+  GPS = { 0x02, 0 }, GSpd = { 0x02, 2 }, Hdg = { 0x02, 3 }, GAlt = { 0x02, 4 }, Sats = { 0x02, 5 },
+  RxBt = { 0x08, 0 }, Curr = { 0x08, 1 }, Capa = { 0x08, 2 }, ["Bat%"] = { 0x08, 3 },
+  Alt = { 0x09, 0 }, VSpd = { 0x07, 0 }, FM = { 0x21, 0 },
+  ["1RSS"] = { 0x14, 0 }, ["2RSS"] = { 0x14, 1 }, RQly = { 0x14, 2 }, RSNR = { 0x14, 3 }, ANT = { 0x14, 4 },
 }
+
+local byPlace = {}
+for name, at in pairs(M.CRSF) do
+  byPlace[at[1] * 256 + at[2]] = name
+end
+
+--- The name a sensor is read by, from the table EdgeTX's model.getSensor
+--- returns, or nil for one not read. Only a sensor the radio discovered has
+--- an id and an instance.
+function M.nameOf(sensor)
+  if type(sensor) == "table" and sensor.id and sensor.instance then
+    return byPlace[sensor.id * 256 + sensor.instance]
+  end
+end
+
+-- The model's sensor list is read a few slots a call, and the whole list
+-- again every few seconds, so a sensor discovered, renamed or deleted
+-- meanwhile is followed.
+local SLOTS_PER_CALL, RESCAN_S = 8, 3
+
+local Finder = {}
+Finder.__index = Finder
+
+--- Finds the sensors read in a model's sensor list. `getSensor(slot)` and
+--- `fieldInfo(name)` are EdgeTX's model.getSensor and getFieldInfo. `ids`
+--- holds each name's source id for getSourceValue once a pass is complete.
+function M.finder(getSensor, fieldInfo)
+  local f = setmetatable({ getSensor = getSensor, fieldInfo = fieldInfo, ids = {}, next = 0 }, Finder)
+  f:restart(0)
+  return f
+end
+
+function Finder:restart(now)
+  self.slot, self.found, self.seen, self.base, self.next = 0, {}, {}, nil, now
+end
+
+--- Reads the next few slots; call every cycle.
+function Finder:step(now)
+  if now < self.next then
+    return
+  end
+  for _ = 1, SLOTS_PER_CALL do
+    local slot = self.slot
+    local sensor = self.getSensor(slot)
+    if sensor == nil then
+      -- Past the last slot. Sensor n's source id is the first sensor's plus
+      -- 3n (value, minimum, maximum), so one id found by name gives all.
+      local ids = {}
+      if self.base then
+        for name, n in pairs(self.found) do
+          ids[name] = self.base + 3 * n
+        end
+      end
+      self.ids = ids
+      self:restart(now + RESCAN_S)
+      return
+    end
+    local label = sensor.name
+    if label and label ~= "" then
+      -- A name finds the first sensor that has it, so only a name no earlier
+      -- slot had finds this one; a field that is not a sensor has no unit.
+      if not self.base and not self.seen[label] then
+        local info = self.fieldInfo(label)
+        if info and info.unit then
+          self.base = info.id - 3 * slot
+        end
+      end
+      self.seen[label] = true
+      local name = M.nameOf(sensor)
+      if name and not self.found[name] then
+        self.found[name] = slot
+      end
+    end
+    self.slot = slot + 1
+  end
+end
 
 local set = crsf.set
 

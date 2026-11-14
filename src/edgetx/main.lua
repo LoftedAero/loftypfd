@@ -88,26 +88,14 @@ local function update(w, values)
   w.settings = settingsOf(values)
 end
 
--- Telemetry sensors by name, their ids looked up once. A sensor EdgeTX has
--- not discovered yet has no id; it is looked for again every few seconds.
-local sensorIds, nextLookup = {}, 0
+-- Telemetry sensors, found by where EdgeTX keeps them rather than by name
+-- (core/sensors.lua).
+local finder = sensors.finder(model.getSensor, getFieldInfo)
+
 local function readSensor(name)
-  local id = sensorIds[name]
+  local id = finder.ids[name]
   if id then
     return getSourceValue(id)
-  end
-end
-
-local function lookUpSensors(now)
-  if now < nextLookup then
-    return
-  end
-  nextLookup = now + 3
-  for _, name in ipairs(sensors.NAMES) do
-    if not sensorIds[name] then
-      local info = getFieldInfo(name)
-      sensorIds[name] = info and info.id
-    end
   end
 end
 
@@ -162,7 +150,7 @@ local function decode(w)
         passthrough.apply(s, appId, value, now)
       end
     end
-    lookUpSensors(now)
+    finder:step(now)
     sensors.apply(s, readSensor, now)
   end
   home.update(s)
@@ -198,7 +186,7 @@ local function refresh(w, event, touch)
     if ev and w.app:event(ev, x, y) == "exit" then
       w.app, ev = nil, nil
     else
-      w.app:update(now)
+      w.app:update(now, w.state.armed)
       w.app:paint(screen, w.zone.w, w.zone.h)
       return
     end

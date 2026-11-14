@@ -117,6 +117,13 @@ is no other specification.
   same setters as the frames (`crsf.set`), so both mean the same thing. `getSourceValue`
   says whether a sensor is current and whether it is fresh; a held value is shown, but only
   a fresh one counts as telemetry arriving, so a dropped link shows as lost.
+- **Sensors are found by where EdgeTX keeps them,** not by name: the CRSF frame type
+  (`model.getSensor`'s `id`) and the place in it (`instance`), which no version has changed.
+  EdgeTX 2.11 named the GPS and the baro altitude both "Alt" (2.12 calls the GPS one
+  "GAlt"), a model keeps the names its sensors were discovered with, and a name finds the
+  first sensor that has it, so on a TX15 set up under 2.11 "Alt" read the GPS altitude. The
+  list is read 8 slots a call and again every 3 s; sensor n's source id is the first
+  sensor's plus 3n, the first found with `getFieldInfo` by its name.
 
 ## The CRSF device menu (`core/devices.lua`)
 
@@ -126,13 +133,31 @@ number (0x2C, with a chunk index) and come back as 0x2B frames: parent, type (to
 hidden), name, then a value whose layout depends on the type. Long entries span chunks
 (ArduPilot: 55 bytes, the parent only in the first).
 
-- **While a menu loads, telemetry waits.** ArduPilot answers menu reads ahead of its
-  telemetry: loading the gyro's 91 entries stopped attitude frames for 15 s in SITL.
-- Entries are loaded 1 to count, one request in flight, retried after a second unanswered.
-  A device whose name, count or version changes is reloaded from scratch: the ExpressLRS
-  script caches the count from its first ping and shows empty menus after a reflash.
+- **While a menu loads, telemetry waits.** While disarmed, any pending menu read puts
+  ArduPilot in a "params mode" that turns off every telemetry frame until 5 s after the
+  last read (`AP_CRSF_Telem::adjust_packet_weight`); armed, it never enters it. Measured in
+  gyro SITL (2026-11-13): reading all 91 entries took 8 s and stopped GPS, battery,
+  attitude and flight mode for 13 s; opening the device now stops them for 5.5 s (0.5 s of
+  reads), and each folder for 5.2-6 s. ArduPilot's answer to a ping does not start the
+  mode but restarts its 5 s while it is on. So, disarmed, readings are not refreshed and
+  the device list pings every 6 s (see "The device browser").
+- **A folder is read when it opens.** A read of entry 0 is answered with a root folder
+  (the gyro: parent 0, type 11, "root", its eight top-level ids, 0xFF), so opening a device
+  reads entry 0 and the entries it lists; opening a folder reads the entries it lists,
+  hidden ones too (so Gyro Setup can reach the hidden "Menu version" by opening Tools). Ids
+  differ between firmware versions, so nothing is looked up by number. How ExpressLRS and
+  Crossfire devices answer entry 0 is unknown: where it goes unanswered three times, or
+  lists nothing, the device is read in full, 1 to count, as before.
+- One request in flight, retried after a second unanswered. A device whose name, count or
+  version changes is reloaded from scratch: the ExpressLRS script caches the count from its
+  first ping and shows empty menus after a reflash.
+- **An entry too short for its type is not stored.** Stock ArduPilot's chunking counted
+  the parent in the first chunk's 55 bytes, so an entry of 54 or 109 bytes went out with
+  nothing after the parent (the gyro's "Learn gain knob" did, with some texts). The read is
+  asked three times, then left out, and what was shown stays; opening its folder asks
+  again. The gyro firmware is fixed; boards flashed before the fix still do it.
 - Folders list their children, ending 0xFF; where a folder lists none the client falls back
-  to the entries' parents.
+  to the entries' parents, after reading every entry.
 - A write (0x2D) is always followed by a read of the same entry, which is what the screen
   shows: devices differ in whether and how they echo a write.
 - A folder's entries are read again each time it opens, shown as they were meanwhile: a
@@ -169,7 +194,13 @@ card of rows, label left and the control in one column on the right.
 - **Input is abstract** ("next", "prev", "enter", "back", "tap" at x, y, "drag" by dy); the
   platforms map their keys and touch onto it. Taps are matched against what the last paint
   drew.
-- **Readings refresh** every 2 s while their folder is open and nothing else is waiting.
+- **Readings refresh** every 2 s while their folder is open, nothing else is waiting and
+  the aircraft is armed; the device list pings every 2 s armed and every 6 s otherwise.
+  Disarmed, each read would keep ArduPilot's telemetry off (see "While a menu loads"). The
+  armed state comes from the widget's telemetry; EdgeTX's tool decodes none, so it never
+  refreshes.
+- **The bar counts a folder's entries** ("3/11") while they load; nothing until entry 0
+  has said what the top level holds.
 
 ## The gyro
 
@@ -177,6 +208,14 @@ Lofted Aero's gyro firmware (WSL `~/ardupilot-gyro`, `GYRO_README.md`) is a stri
 ArduPlane that serves its whole setup menu over CRSF as device 0xC8, named "Gyro". Its
 SITL build (`build/sitl/bin/arduplane`, built with `Tools/gyro/sitl-gyro.hwdef`) serves the
 same menu, which is what `tests/sitl_test.py` drives.
+
+- **Chunks:** each carries up to 55 bytes of the entry from chunk x 55, the parent byte
+  before the first only (`tests/lib/fakegyro.lua` splits the same way, and the stock way
+  with `oldChunks`).
+- **Armed,** it refuses every write except the numbers in "6 Tuning"; the read-back shows
+  the value unchanged. The model does not arm while a command dialog is open.
+- **A command ends itself** with "Timed out" when the radio stops asking: 10 s without a
+  poll while in progress, 2 minutes while waiting for confirmation.
 
 ## The HUD (`core/hud.lua`)
 

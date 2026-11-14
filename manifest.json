@@ -1,7 +1,7 @@
 {
  "format": 1,
  "name": "Lofty PFD",
- "version": "0.1.0",
+ "version": "0.1.1",
  "repository": "LoftedAero/loftypfd",
  "files": "https://raw.githubusercontent.com/LoftedAero/loftypfd/v{version}/{from}",
  "radios": {
@@ -20,8 +20,8 @@
     {
      "from": "src/edgetx/main.lua",
      "to": "WIDGETS/LoftyPFD/main.lua",
-     "size": 6819,
-     "sha256": "41a0cec53b25ad3153afa4cae9e10a4c00926e4dbeb42364a072234128eec1ba"
+     "size": 6533,
+     "sha256": "7366b5e98b54f5496f534839d6b790b599d496ecfdba96ed0a6ad7e9ea6e5e33"
     },
     {
      "from": "src/edgetx/screen.lua",
@@ -32,8 +32,8 @@
     {
      "from": "src/edgetx/tool.lua",
      "to": "SCRIPTS/TOOLS/LoftyPFD.lua",
-     "size": 1444,
-     "sha256": "749eb8d8a9be262392c59a373ca480989e54092ca1ea51fb677d941567de0dd5"
+     "size": 1595,
+     "sha256": "ff1845363db46591a656594220970deb091982cf2ef8203a0f2525a387c3d261"
     },
     {
      "from": "src/core/bits.lua",
@@ -62,8 +62,8 @@
     {
      "from": "src/core/devices.lua",
      "to": "WIDGETS/LoftyPFD/core/devices.lua",
-     "size": 10611,
-     "sha256": "6f23723a2ad75d5a603351e79194c1606eca33ec389df27f719ab9abc27fe228"
+     "size": 15779,
+     "sha256": "0339002cf0fcdc62cf5f82da8f39b0413fcfa7c38a9dcbd67c7579fb146d9dc2"
     },
     {
      "from": "src/core/flight.lua",
@@ -110,8 +110,8 @@
     {
      "from": "src/core/menu.lua",
      "to": "WIDGETS/LoftyPFD/core/menu.lua",
-     "size": 21201,
-     "sha256": "2f9823cadc102e0e1956411ff3c445977673852bffc656186e7d9f3d907fc6d3"
+     "size": 21465,
+     "sha256": "04357df1cfa5c2db1cb00ca94a4a516acc7ad8c312d41f82291d4e8277019f41"
     },
     {
      "from": "src/core/modes.lua",
@@ -158,8 +158,8 @@
     {
      "from": "src/core/sensors.lua",
      "to": "WIDGETS/LoftyPFD/core/sensors.lua",
-     "size": 2603,
-     "sha256": "5065d56c9d580fc6c6ae0e22b5cbe58bab69205712f91c4f2bb10836544455ed"
+     "size": 5713,
+     "sha256": "8337e79392095274295d266cb0a6a7bff73250d65e608e5616a3335f92127eab"
     },
     {
      "from": "src/core/subcanvas.lua",
@@ -694,8 +694,8 @@
     {
      "from": "src/ethos/main.lua",
      "to": "scripts/loftypfd/main.lua",
-     "size": 20272,
-     "sha256": "4f6891426b49926f0c31c67bafb44d48f41c0e89806c7ef534f841fae56ef8d8"
+     "size": 20308,
+     "sha256": "90dd4344d08544a33343c2b85eba46887f6ae77913fde9f0f0c54779d4c136d1"
     },
     {
      "from": "src/ethos/icon.png",
@@ -730,8 +730,8 @@
     {
      "from": "src/core/devices.lua",
      "to": "scripts/loftypfd/core/devices.lua",
-     "size": 10611,
-     "sha256": "6f23723a2ad75d5a603351e79194c1606eca33ec389df27f719ab9abc27fe228"
+     "size": 15779,
+     "sha256": "0339002cf0fcdc62cf5f82da8f39b0413fcfa7c38a9dcbd67c7579fb146d9dc2"
     },
     {
      "from": "src/core/flight.lua",
@@ -778,8 +778,8 @@
     {
      "from": "src/core/menu.lua",
      "to": "scripts/loftypfd/core/menu.lua",
-     "size": 21201,
-     "sha256": "2f9823cadc102e0e1956411ff3c445977673852bffc656186e7d9f3d907fc6d3"
+     "size": 21465,
+     "sha256": "04357df1cfa5c2db1cb00ca94a4a516acc7ad8c312d41f82291d4e8277019f41"
     },
     {
      "from": "src/core/modes.lua",
@@ -826,8 +826,8 @@
     {
      "from": "src/core/sensors.lua",
      "to": "scripts/loftypfd/core/sensors.lua",
-     "size": 2603,
-     "sha256": "5065d56c9d580fc6c6ae0e22b5cbe58bab69205712f91c4f2bb10836544455ed"
+     "size": 5713,
+     "sha256": "8337e79392095274295d266cb0a6a7bff73250d65e608e5616a3335f92127eab"
     },
     {
      "from": "src/core/subcanvas.lua",

@@ -428,8 +428,8 @@ def fly(sitl, radio, record=None):
 
 
 def record_menu(sitl, out):
-    """Loads the gyro's whole menu, keeping its answers: the device info and
-    every chunk of every entry, as "0 type hex" lines."""
+    """Loads the gyro's whole menu, keeping its answers: the device info,
+    entry 0 and every chunk of every entry, as "0 type hex" lines."""
     radio = Radio()
     client = radio.attach(sitl.crsf)
     kept = {}
@@ -449,8 +449,10 @@ def record_menu(sitl, out):
             if not loading:
                 loading = True
                 radio.call("load", 0xC8)
+                radio.call("loadAll", 0xC8)
             loaded, count = radio.call("progress", 0xC8)
-            if loaded == count:
+            dev = client.devices[0xC8]
+            if loaded == count and (dev.entries[0] is not None or dev.full):
                 break
         time.sleep(0.02)
     with open(out, "w", encoding="utf-8", newline="\n") as f:

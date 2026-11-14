@@ -611,6 +611,7 @@ class Core:
             for i = 1, #bytes do d[i] = bytes:byte(i) end
             local ok, e = pcall(devices.parseEntry, id, d)
             if not ok then return nil, e end
+            if not e then return nil, "too short to parse (" .. #d .. " bytes)" end
             local enc = {}
             local okv, v = pcall(devices.encodeValue, e, e.raw or e.value)
             if okv and e.type ~= 13 and e.type ~= 11 and e.type ~= 12 then
@@ -1070,7 +1071,7 @@ def analyze(folder, capture=None):
     if menus.devices or menus.requests:
         out("== device menus")
         for addr, dev in sorted(menus.devices.items()):
-            loaded = len(dev["entries"])
+            loaded = len([k for k in dev["entries"] if k >= 1])   # entry 0 is the root
             count = dev["count"]
             check("%s (0x%02X) loads" % (dev["name"], addr), count is not None and loaded >= count,
                   "%d of %s entries" % (loaded, count))
@@ -1168,7 +1169,8 @@ class FakeRadio:
                 self.client.update(self.client, now)
                 dev = self.client.devices[0xC8]
                 if dev and not loaded:
-                    self.client.load(self.client, 0xC8)
+                    # as a pilot opening every folder would
+                    self.client.loadAll(self.client, 0xC8)
                     loaded = True
                 if loaded and not written:
                     done, count = self.client.progress(self.client, 0xC8)

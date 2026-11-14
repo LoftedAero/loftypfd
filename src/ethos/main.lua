@@ -493,7 +493,7 @@ local function wakeup(w)
   poll(now)
   local polled = os.clock()
   if w.app then
-    w.app:update(now)
+    w.app:update(now, link.state.armed)
   end
   w.flight:update(link.state, now)
   -- wakeup runs whether or not the screen is showing; decoding must go on,
@@ -636,7 +636,7 @@ end
 local function toolWakeup(t)
   local now = os.clock()
   poll(now)
-  t.app:update(now)
+  t.app:update(now, link.state.armed)
   if link.capture then
     link.capture:update(now, link.state)
   end

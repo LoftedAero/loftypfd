@@ -77,9 +77,38 @@ local function nameOf(d)
   return table.concat(out)
 end
 
+-- The frame answering a read of chunk `chunk` of `data` (parent first), as
+-- AP_CRSF_Telem.cpp chunks it: up to 55 bytes of the entry from chunk * 55,
+-- the parent before the first chunk only. `old` is the stock maths, which
+-- counted the parent in the first chunk's 55 and sent one byte past the end:
+-- an entry of 54 or 109 bytes went out with nothing after the parent.
+local function chunkFrame(id, data, chunk, old)
+  local len = #data - 1
+  local start, n, left
+  if old then
+    local chunks = math.floor(len / 55) + 1
+    left = chunks - 1 - chunk
+    start, n = chunk * 55, left > 0 and 55 or (len + 1) % 55
+  else
+    start = math.min(chunk * 55, len)
+    n = math.min(len - start, 55)
+    left = math.floor((len - start - n + 54) / 55)
+  end
+  local r = { RADIO, FC, id, left }
+  if chunk == 0 then
+    r[#r + 1] = data[1]
+  end
+  for k = start + 1, start + n do
+    r[#r + 1] = data[k + 1] or 0
+  end
+  return r
+end
+
 -- With `opts.radio`, also the Radio folder: channels each followed by the
--- command that learns it.
+-- command that learns it. `opts.root` false leaves entry 0 unanswered, "empty"
+-- answers it with no entries; `opts.oldChunks` chunks as stock ArduPilot did.
 local function fakeDevice(opts)
+  opts = opts or {}
   local dev = {
     entries = {
       [1] = info(0, "Status", "DISARMED MANUAL GPS none"),
@@ -96,8 +125,10 @@ local function fakeDevice(opts)
     sent = {},
     -- requests the device drops, by id, to exercise retries
     drop = { [4] = 1 },
+    -- reads asked, by id
+    reads = {},
   }
-  if opts and opts.radio then
+  if opts.radio then
     dev.entries[9] = folder(0, "2 Radio", { 10, 11, 12, 13, 14 })
     dev.entries[10] = command(9, "Learn sticks", 0, "")
     dev.entries[11] = selection(9, "Arm switch", { "Off", "Ch5", "Ch6" }, 1)
@@ -125,16 +156,26 @@ local function fakeDevice(opts)
         r[#r + 1] = 0
       elseif t == 0x2C and p[1] == FC then
         local id, chunk = p[3], p[4]
-        if dev.drop[id] and dev.drop[id] > 0 then
+        if chunk == 0 then
+          dev.reads[id] = (dev.reads[id] or 0) + 1
+        end
+        if id == 0 then
+          -- the root folder, answered in one frame as the firmware does:
+          -- the top-level entries in order
+          if opts.root ~= false then
+            local top = {}
+            for k = 1, dev.count do
+              if opts.root ~= "empty" and dev.entries[k][1] == 0 then
+                top[#top + 1] = k
+              end
+            end
+            replies[#replies + 1] = { 0x2B, chunkFrame(0, folder(0, "root", top), 0) }
+          end
+        elseif dev.drop[id] and dev.drop[id] > 0 then
           dev.drop[id] = dev.drop[id] - 1
         else
           local data = dev.entries[id]
-          local chunks = math.floor((#data - 1) / 55) + 1
-          local r = { RADIO, FC, id, chunks - 1 - chunk }
-          for k = chunk * 55 + 1, math.min(#data, chunk * 55 + 55) do
-            r[#r + 1] = data[k]
-          end
-          replies[#replies + 1] = { 0x2B, r }
+          replies[#replies + 1] = { 0x2B, chunkFrame(id, data, chunk, opts.oldChunks and data[2] ~= 11) }
         end
       elseif t == 0x2D and p[1] == FC then
         local id = p[3]
@@ -178,4 +219,4 @@ local function run(client, dev, now, steps)
   return now
 end
 
-return { new = fakeDevice, run = run, FC = FC, command = command }
+return { new = fakeDevice, run = run, FC = FC, command = command, info = info, chunkFrame = chunkFrame }

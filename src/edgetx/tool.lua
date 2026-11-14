@@ -40,6 +40,8 @@ local function run(event, touch)
     end
     app.client:handle(frameType, data, now)
   end
+  -- The tool decodes no telemetry, so the aircraft counts as not known to
+  -- be armed: readings are not refreshed, which keeps the telemetry going.
   app:update(now)
   palette.set(palette.pick(nil, edgetx.radioDark()))
   local ev, x, y = edgetx.event(event, touch)

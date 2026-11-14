@@ -3,9 +3,9 @@
 -- Every CRSF device (the transmitter module, the receiver, a flight
 -- controller) answers a ping with its name and how many settings it has, and
 -- serves each setting as an entry read by number, in chunks. Writes change a
--- value; commands run a short dialog driven by the device. This client loads
--- a device's entries one request at a time, retries what goes unanswered,
--- and keeps the entries current as the device answers.
+-- value; commands run a short dialog driven by the device. This client reads
+-- a device's entries a folder at a time, one request at a time, retries what
+-- goes unanswered, and keeps the entries current as the device answers.
 --
 -- The radio's own push function sends a frame: push(frameType, payload) with
 -- the payload starting at the destination address. It may refuse while its
@@ -35,6 +35,11 @@ M.COMMAND = {
 -- a flight controller that answers between telemetry frames on a slow link.
 local RETRY_S = 1.0
 
+-- Answers a read gets that are too short to parse, before the entry is left
+-- out, so one bad entry cannot hold the queue. Entry 0 gets this many
+-- unanswered reads too before the device is read in full.
+local TRIES = 3
+
 local INT_SIZE = { [0] = 1, 1, 2, 2, 4, 4 }
 
 local function readInt(d, i, size, isSigned)
@@ -48,16 +53,28 @@ local function readInt(d, i, size, isSigned)
   return v, i + size
 end
 
---- Decodes an entry from its bytes, all chunks joined. Missing trailing
---- fields are left nil rather than failing, since devices differ in what
---- they send after the value.
+--- Decodes an entry from its bytes, all chunks joined, or returns nil when
+--- they are too few for its type: the stock ArduPilot chunking sent an entry
+--- of 54 or 109 bytes as a frame holding only the parent. Fields after the
+--- value may be missing and are left nil, since devices differ there.
 function M.parseEntry(id, d)
+  local n = #d
+  if n < 3 then
+    return nil
+  end
   local e = { id = id, parent = d[1], type = d[2] % 128, hidden = d[2] >= 128 }
   local i
   e.name, i = cstring(d, 3)
+  -- cstring returns past n + 1 when no zero ends the string.
+  if i > n + 1 then
+    return nil
+  end
   local t = e.type
   if t <= 5 then
     local size, isSigned = INT_SIZE[t], t % 2 == 1
+    if i + 3 * size - 1 > n then
+      return nil
+    end
     e.value, i = readInt(d, i, size, isSigned)
     e.min, i = readInt(d, i, size, isSigned)
     e.max, i = readInt(d, i, size, isSigned)
@@ -66,6 +83,10 @@ function M.parseEntry(id, d)
     end
     e.unit = cstring(d, i)
   elseif t == 8 then
+    -- value, min, max, default, decimals and step have fixed places
+    if i + 20 > n then
+      return nil
+    end
     e.raw = i32be(d, i)
     e.min = i32be(d, i + 4)
     e.max = i32be(d, i + 8)
@@ -77,6 +98,9 @@ function M.parseEntry(id, d)
   elseif t == 9 then
     local options
     options, i = cstring(d, i)
+    if i + 2 > n then
+      return nil
+    end
     e.options = {}
     for option in string.gmatch((options .. ";"), "([^;]*);") do
       e.options[#e.options + 1] = option
@@ -87,7 +111,11 @@ function M.parseEntry(id, d)
     e.default = d[i + 3]
     e.unit = d[i + 4] and cstring(d, i + 4) or ""
   elseif t == 10 or t == 12 then
-    e.value = cstring(d, i)
+    -- a text cut short would show as the device's own
+    e.value, i = cstring(d, i)
+    if i > n + 1 then
+      return nil
+    end
   elseif t == 11 then
     e.children = {}
     while d[i] and d[i] ~= 0xFF do
@@ -95,6 +123,9 @@ function M.parseEntry(id, d)
       i = i + 1
     end
   elseif t == 13 then
+    if i + 1 > n then
+      return nil
+    end
     e.status = d[i]
     e.timeout = d[i + 1]
     e.info = cstring(d, i + 2)
@@ -144,22 +175,118 @@ local function job(self, j, first)
   end
 end
 
---- Loads every entry of a device, after its info has arrived.
+local function read(address, id)
+  return { kind = "read", address = address, id = id, chunk = 0, data = {}, tries = 0 }
+end
+
+-- The entries of a device being read or waiting to be, as a set. Built once
+-- per call rather than searched per entry: a full load checks 91 entries
+-- against a queue as long, more than a radio lets one call do.
+local function reading(self, address)
+  local set = {}
+  local c = self.current
+  if c and c.kind == "read" and c.address == address then
+    set[c.id] = true
+  end
+  for _, j in ipairs(self.jobs) do
+    if j.kind == "read" and j.address == address then
+      set[j.id] = true
+    end
+  end
+  return set
+end
+
+-- Queues every entry not loaded, after anything already queued.
+local function loadAll(self, dev)
+  local busy = reading(self, dev.address)
+  for id = 1, dev.count do
+    if not dev.entries[id] and not busy[id] then
+      job(self, read(dev.address, id))
+    end
+  end
+end
+
+-- Entry 0 lists no top level, or never answered: entries are read 1 to count
+-- and folders found by their entries' parents.
+local function readInFull(self, dev)
+  dev.full = true
+  loadAll(self, dev)
+end
+
+-- Reads `ids` in order, ahead of everything queued; one already queued moves
+-- forward instead of being read twice.
+local function readFirst(self, address, ids)
+  local want, out = {}, {}
+  local c = self.current
+  for _, id in ipairs(ids) do
+    if not (c and c.kind == "read" and c.address == address and c.id == id) and not want[id] then
+      want[id] = true
+      out[#out + 1] = read(address, id)
+    end
+  end
+  for _, j in ipairs(self.jobs) do
+    if not (j.kind == "read" and j.address == address and want[j.id]) then
+      out[#out + 1] = j
+    end
+  end
+  self.jobs = out
+end
+
+--- Reads a device's top level, after its info has arrived: entry 0, the root
+--- folder that lists it, then those entries. A folder's own entries are read
+--- when it opens. A device whose entry 0 lists nothing is read in full.
 function Client:load(address)
   local dev = self.devices[address]
   if not dev then
     return
   end
-  for id = 1, dev.count do
-    if not dev.entries[id] then
-      job(self, { kind = "read", address = address, id = id, chunk = 0, data = {} })
-    end
+  if dev.full or dev.entries[0] then
+    return self:open(address, 0)
   end
+  if not reading(self, address)[0] then
+    job(self, read(address, 0))
+  end
+end
+
+--- Reads every entry of a device, 1 to count: what a recording of the menu
+--- needs.
+function Client:loadAll(address)
+  local dev = self.devices[address]
+  if dev then
+    loadAll(self, dev)
+  end
+end
+
+--- Reads a folder's entries, hidden ones included, ahead of anything
+--- queued: those not loaded yet, and the rest again, since a write elsewhere
+--- can change them. Where the folder lists no entries, the ones naming it as
+--- their parent, and every entry not loaded yet.
+function Client:open(address, folder)
+  local dev = self.devices[address]
+  if not dev then
+    return
+  end
+  if folder == 0 and not dev.full and not dev.entries[0] then
+    return self:load(address)
+  end
+  local f = dev.entries[folder]
+  local ids = f and f.children
+  if not ids or #ids == 0 then
+    ids = {}
+    for id = 1, dev.count do
+      local e = dev.entries[id]
+      if e and e.parent == folder then
+        ids[#ids + 1] = id
+      end
+    end
+    loadAll(self, dev)
+  end
+  readFirst(self, address, ids)
 end
 
 --- Reads one entry again, ahead of anything already queued.
 function Client:refresh(address, id)
-  job(self, { kind = "read", address = address, id = id, chunk = 0, data = {} }, true)
+  job(self, read(address, id), true)
 end
 
 --- Writes a value: for a number the raw integer the device scales by its
@@ -238,11 +365,18 @@ function Client:update(now)
   end
   local c = self.current
   if c and now - c.sent > RETRY_S then
-    -- Unanswered: ask again from the first chunk.
+    -- Unanswered: ask again from the first chunk. Entry 0 is optional, so
+    -- after a few tries the device is read in full instead.
     self.current = nil
     c.chunk = 0
     c.data = {}
-    job(self, c, true)
+    c.tries = (c.tries or 0) + 1
+    local dev = self.devices[c.address]
+    if c.id == 0 and c.tries >= TRIES and dev then
+      readInFull(self, dev)
+    else
+      job(self, c, true)
+    end
   end
   -- A running command is polled at the interval the device asked for.
   for address, dev in pairs(self.devices) do
@@ -261,12 +395,15 @@ end
 local function deviceInfo(self, d)
   local origin = d[2]
   local name, i = cstring(d, 3)
+  if not origin or i + 13 > #d then
+    return
+  end
   local dev = self.devices[origin]
   local count, version = d[i + 12], d[i + 13]
   -- A device that changed its menu (new firmware, a different count) starts
   -- over, rather than keeping entries numbered for the old one.
   if not dev or dev.count ~= count or dev.version ~= version or dev.name ~= name then
-    dev = { address = origin, entries = {} }
+    dev = { address = origin, entries = {}, failed = {} }
     self.devices[origin] = dev
   end
   dev.name = name
@@ -280,12 +417,13 @@ end
 local function entry(self, d, now)
   local origin, id, chunksLeft = d[2], d[3], d[4]
   local dev = self.devices[origin]
-  if not dev then
+  if not dev or not chunksLeft then
     return
   end
   local c = self.current
+  local mine = c and c.address == origin and c.id == id
   local data
-  if c and c.address == origin and c.id == id then
+  if mine then
     data = c.data
   elseif chunksLeft == 0 then
     -- An entry the device sent on its own, such as a command's progress.
@@ -303,11 +441,38 @@ local function entry(self, d, now)
     job(self, c, true)
     return
   end
-  if c and c.address == origin and c.id == id then
+  if mine then
     self.current = nil
   end
   local e = M.parseEntry(id, data)
+  if not e then
+    -- Too short to parse: asked again a few times, then left out until its
+    -- folder opens again. What was shown before stays.
+    if mine then
+      c.tries = (c.tries or 0) + 1
+      if c.tries < TRIES then
+        c.chunk = 0
+        c.data = {}
+        job(self, c, true)
+      elseif id == 0 then
+        readInFull(self, dev)
+      else
+        dev.failed[id] = true
+      end
+    end
+    return
+  end
+  if id == 0 then
+    if e.type == M.FIELD.folder and #e.children > 0 then
+      dev.entries[0] = e
+      self:open(origin, 0)
+    else
+      readInFull(self, dev)
+    end
+    return
+  end
   dev.entries[id] = e
+  dev.failed[id] = nil
   if e.type == M.FIELD.command and dev.running == id and e.status == M.COMMAND.ready then
     dev.running = nil
   end
@@ -331,19 +496,31 @@ function Client:handle(frameType, d, now)
   return true
 end
 
---- How many of a device's entries have loaded, and how many it has.
-function Client:progress(address)
+--- How far a folder has loaded: its entries that are settled (loaded, or
+--- left out as unreadable), and how many it lists. Without a folder, or for
+--- one that lists none, the whole device, 1 to count. The top level reports
+--- 0, 0 until entry 0 has said what it holds.
+function Client:progress(address, folder)
   local dev = self.devices[address]
   if not dev then
     return 0, 0
   end
-  local n = 0
-  for id = 1, dev.count do
-    if dev.entries[id] then
+  local f = folder and dev.entries[folder]
+  local ids = f and f.children
+  if not ids or #ids == 0 then
+    if folder == 0 and not dev.full then
+      return 0, 0
+    end
+    ids = nil
+  end
+  local n, total = 0, ids and #ids or dev.count
+  for k = 1, total do
+    local id = ids and ids[k] or k
+    if dev.entries[id] or dev.failed[id] then
       n = n + 1
     end
   end
-  return n, dev.count
+  return n, total
 end
 
 --- The visible entries in a folder, in the device's order. Folder 0 is the
@@ -354,7 +531,7 @@ function Client:children(address, folder)
   if not dev then
     return out
   end
-  local f = folder ~= 0 and dev.entries[folder]
+  local f = dev.entries[folder]
   if f and f.children and #f.children > 0 then
     for _, id in ipairs(f.children) do
       local e = dev.entries[id]

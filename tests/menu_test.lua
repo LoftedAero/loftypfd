@@ -28,13 +28,20 @@ end
 -- A browser on the fake gyro, run until the device has answered everything.
 local function browser(opts)
   local dev = fake.new(opts)
-  local client = devices.new(dev.push)
+  -- armed: what the browser is told of the aircraft; pings: how many it sent
+  local b = { dev = dev, pings = 0 }
+  local client = devices.new(function(frameType, payload)
+    if frameType == 0x28 then
+      b.pings = b.pings + 1
+    end
+    return dev.push(frameType, payload)
+  end)
   local app = menu.new(client)
   local now = 0
-  local b = { dev = dev, client = client, app = app }
+  b.client, b.app = client, app
   function b.run(steps)
     for _ = 1, steps or 100 do
-      app:update(now)
+      app:update(now, b.armed)
       for _, r in ipairs(dev.answer()) do
         client:handle(r[1], r[2], now)
       end
@@ -87,6 +94,7 @@ T.case("devices, a device, a folder, and Back one level at a time", function()
   T.ok(c.has("DISARMED MANUAL GPS none"), "a reading")
   T.ok(not c.has("Link loss"), "a folder's entries stay in it")
   b.app:event("enter")
+  b.run(20)
   c = b.paint()
   T.ok(c.has("Link loss") and c.has("100 m"), "the folder's entries")
   T.ok(not c.has("RTL"), "hidden entries do not show")
@@ -116,6 +124,7 @@ T.case("a selection is stepped, written and read back", function()
   b.app:event("enter")
   b.run()
   b.app:event("enter")
+  b.run(20)
   b.app:event("enter")
   b.app:event("next")
   T.ok(b.paint().has("RTL if GPS"), "the edit shows the new value")
@@ -134,6 +143,7 @@ T.case("Back leaves an edit unwritten", function()
   b.app:event("enter")
   b.run()
   b.app:event("enter")
+  b.run(20)
   b.app:event("enter")
   b.app:event("next")
   b.app:event("back")
@@ -147,6 +157,8 @@ T.case("a number steps by the device's step and stops at its limits", function()
   local b = browser()
   b.app:event("enter")
   b.run()
+  b.app:event("enter")
+  b.run(20)
   local e = b.client.devices[fake.FC].entries[4]
   T.eq(menu.step(e, 100, 1), 110, "step 10")
   T.eq(menu.step(e, 395, 1), 400, "stops at the maximum")
@@ -159,6 +171,7 @@ T.case("touch: a tap opens a folder, edits, steps and writes", function()
   b.tap("Gyro")
   b.run()
   b.tap("5 Failsafe")
+  b.run(20)
   b.tap("FBWA glide")
   T.ok(b.app.edit, "the tap opened the edit")
   b.paint()
@@ -181,7 +194,7 @@ T.case("a command runs in a dialog until it is canceled", function()
   b.app:event("next")
   b.app:event("next")
   b.app:event("enter")
-  b.run(10)
+  b.run(20)
   local c = b.paint()
   T.ok(c.has("Check mode switch"), "the dialog's title")
   T.ok(c.has("Ch6 Low: MANUAL"), "the device's text")
@@ -207,6 +220,7 @@ T.case("a frame stays well inside the radio's budget", function()
   b.app:event("enter")
   b.run()
   b.app:event("enter")
+  b.run(20)
   local c = canvas(480, 320)
   local n = 0
   debug.sethook(function()
@@ -245,7 +259,7 @@ T.case("a channel and the command that learns it share a row", function()
   b.app:event("prev")
   T.ok(p.focus == 2 and p.part == 2, "back onto the Learn button")
   b.app:event("enter")
-  b.run(10)
+  b.run(20)
   T.ok(b.paint().has("Learn arm switch"), "Enter on Learn runs the command, named in the dialog")
   b.app:event("back")
   b.run(10)
@@ -263,9 +277,66 @@ T.case("a folder's entries are read again when it opens", function()
   local b = browser()
   b.app:event("enter")
   b.run()
+  b.tap("5 Failsafe")
+  b.run(20)
+  T.ok(b.paint().has("FBWA glide"), "loaded")
+  b.app:event("back")
   -- changed on the device by something else, after the browser loaded it
   b.dev.entries[3][#b.dev.entries[3] - 4] = 1
   b.tap("5 Failsafe")
-  b.run(10)
+  T.ok(b.paint().has("FBWA glide"), "shown as it was meanwhile")
+  b.run(20)
   T.ok(b.paint().has("RTL if GPS"), "the device's value, not the cached one")
+end)
+
+T.case("the bar counts a folder's entries while they load", function()
+  local b = browser({ radio = true })
+  local function counter()
+    for _, t in ipairs(b.paint().texts) do
+      if string.match(t.str, "^%d+/%d+$") then
+        return t.str
+      end
+    end
+  end
+  b.app:event("enter")
+  T.eq(counter(), nil, "nothing counted before entry 0 answers")
+  b.run(1)
+  T.eq(counter(), "0/6", "the top level once it has")
+  b.run()
+  T.eq(counter(), nil, "nothing once it has loaded")
+  b.tap("5 Failsafe")
+  T.eq(counter(), "0/3", "the folder's three entries, the hidden one too")
+  b.run(20)
+  T.eq(counter(), nil, "nothing once loaded")
+  T.eq(b.dev.reads[10], nil, "the other folder not read")
+end)
+
+T.case("readings are read again only while armed", function()
+  local b = browser()
+  b.app:event("enter")
+  b.run()
+  local function statusReads(seconds)
+    local before = b.dev.reads[1] or 0
+    b.run(seconds * 10)
+    return (b.dev.reads[1] or 0) - before
+  end
+  -- disarmed, each read would stop ArduPilot's telemetry for 5 s
+  T.eq(statusReads(10), 0, "disarmed: not read again")
+  b.armed = true
+  local n = statusReads(10)
+  T.ok(n >= 4 and n <= 6, "armed: every 2 s (" .. n .. " in 10 s)")
+end)
+
+T.case("disarmed, pings are spaced wider than ArduPilot's 5 s", function()
+  local b = browser()
+  local before = b.pings
+  b.run(300)
+  local disarmed = b.pings - before
+  T.ok(disarmed >= 4 and disarmed <= 6, "disarmed: every 6 s (" .. disarmed .. " in 30 s)")
+  b.armed = true
+  before = b.pings
+  b.run(300)
+  local armed = b.pings - before
+  -- the first waits out the 6 s already set
+  T.ok(armed >= 13 and armed <= 16, "armed: every 2 s (" .. armed .. " in 30 s)")
 end)
