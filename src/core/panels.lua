@@ -65,22 +65,42 @@ local function distance(m, unit)
   return m >= 1000 and string.format("%.2f km", m / 1000) or string.format("%d m", floor(m + 0.5))
 end
 
---- The battery card: volts large with volts per cell, current, power, the
---- charge used against the pack's capacity with a level bar, the second
---- pack when there is one, and the transmitter's own battery if `opts.tx` is
---- set. `opts.cells` is the pilot's cell count, where set.
-function M.battery(c, x, y, w, h, s, sc, opts)
+-- A battery card's title and its first line, volts large with volts per
+-- cell. Returns the pack, its cell count and the top of the next line.
+local function batteryTop(c, x, y, w, h, s, sc, opts)
   local by = M.card(c, x, y, w, h, "Battery", sc)
   local pad = 6 * sc
   local b = s.battery[1]
   local cells = opts.cells or vehicle.cells(b)
-  local tx = opts.tx
   local ly = by + 12 * sc
   c.text(x + pad, ly, b.volts and string.format("%.1f V", b.volts) or DASH, 20 * sc,
     s.battFailsafe and T.bad or T.ink, "left", true)
   c.text(x + w - pad, ly, cells and b.volts and string.format("%.2f V/cell", b.volts / cells) or "",
     11 * sc, T.ink2, "right")
-  ly = ly + 20 * sc
+  return b, cells, ly + 20 * sc
+end
+
+-- The rows both battery cards end with, where they fit: the second pack
+-- when there is one, and the transmitter's own battery if `tx` is set.
+local function batteryRest(c, x, y, w, h, ly, s, sc, tx)
+  local bottom = y + h - 6 * sc
+  local b2 = s.battery[2]
+  if b2.volts and ly < bottom then
+    row(c, x, ly, w, "Battery 2", string.format("%.1f V  %.1f A", b2.volts, b2.amps or 0), sc)
+    ly = ly + rowH(sc)
+  end
+  if tx and ly < bottom then
+    row(c, x, ly, w, "Transmitter", tx.volts and string.format("%.1f V", tx.volts) or DASH, sc)
+  end
+end
+
+--- The battery card: volts large with volts per cell, current, power, the
+--- charge used against the pack's capacity with a level bar, the second
+--- pack when there is one, and the transmitter's own battery if `opts.tx` is
+--- set. `opts.cells` is the pilot's cell count, where set.
+function M.battery(c, x, y, w, h, s, sc, opts)
+  local b, _, ly = batteryTop(c, x, y, w, h, s, sc, opts)
+  local pad = 6 * sc
   -- Rows in order of what a pilot flies by; a short card drops from the end.
   local bottom = y + h - 6 * sc
   local used = b.used and (b.capacity and b.capacity > 0 and string.format("%d / %d mAh", b.used, b.capacity)
@@ -108,14 +128,122 @@ function M.battery(c, x, y, w, h, s, sc, opts)
     row(c, x, ly, w, "Load", load, sc)
     ly = ly + rowH(sc)
   end
-  local b2 = s.battery[2]
-  if b2.volts and ly < bottom then
-    row(c, x, ly, w, "Battery 2", string.format("%.1f V  %.1f A", b2.volts, b2.amps or 0), sc)
+  batteryRest(c, x, y, w, h, ly, s, sc, opts.tx)
+end
+
+--- The battery card for a pack monitored by its voltage alone: volts large
+--- with volts per cell, then the lowest since arming, the sag under load
+--- being what tells such a pack's state, then the rows the full card ends
+--- with.
+function M.batteryVoltage(c, x, y, w, h, s, sc, opts)
+  local b, cells, ly = batteryTop(c, x, y, w, h, s, sc, opts)
+  ly = ly + 4 * sc
+  local lowest = DASH
+  if b.lowest then
+    lowest = string.format("%.1f V", b.lowest)
+    if cells then
+      lowest = lowest .. string.format(" %.2f/cell", b.lowest / cells)
+    end
+  end
+  row(c, x, ly, w, "Lowest", lowest, sc)
+  batteryRest(c, x, y, w, h, ly + rowH(sc), s, sc, opts.tx)
+end
+
+-- Rows from the top of a card's body, each where it fits; a short card
+-- drops from the end, so rows go in the order a pilot reads them.
+local function rows(c, x, y, w, h, by, sc, list)
+  local ly = by + 8 * sc
+  for _, r in ipairs(list) do
+    if ly >= y + h - 6 * sc then
+      return
+    end
+    row(c, x, ly, w, r[1], r[2] or DASH, sc)
     ly = ly + rowH(sc)
   end
-  if tx and ly < bottom then
-    row(c, x, ly, w, "Transmitter", tx.volts and string.format("%.1f V", tx.volts) or DASH, sc)
+end
+
+-- RSSI as CRSF sends it is dBm, below zero; a FrSky receiver's is a
+-- relative dB, above it.
+local function rssiText(v)
+  return v < 0 and (v .. " dBm") or (v .. " dB")
+end
+
+--- The link card, from the receiver and the transmitter module: the
+--- uplink's quality large with its RSSI, each antenna's RSSI where there are
+--- two (with one, it is the RSSI above), the downlink, the module's power
+--- and the uplink's SNR.
+function M.link(c, x, y, w, h, s, sc)
+  local l = s.link
+  local by = M.card(c, x, y, w, h, "Link", sc)
+  local pad = 6 * sc
+  local ly = by + 12 * sc
+  c.text(x + pad, ly, l.lq and ("LQ " .. l.lq .. "%") or "LQ " .. DASH, 20 * sc, T.ink, "left", true)
+  c.text(x + w - pad, ly, l.rssi and rssiText(l.rssi) or "", 11 * sc, T.ink2, "right")
+  local down
+  if l.downRssi or l.downLq then
+    down = (l.downLq and (l.downLq .. "%") or DASH) .. "  " .. (l.downRssi and rssiText(l.downRssi) or DASH)
   end
+  local list = {}
+  if l.rssi1 and l.rssi2 then
+    list[1] = { "Antennas", l.rssi1 .. " / " .. l.rssi2 .. " dBm" }
+  end
+  list[#list + 1] = { "Downlink", down }
+  list[#list + 1] = { "Power", l.txPower and (l.txPower .. " mW") }
+  list[#list + 1] = { "SNR", l.snr and (l.snr .. " dB") }
+  rows(c, x, y, w, h, ly + 12 * sc, sc, list)
+end
+
+--- A time in seconds as a radio's timer shows it: minutes and seconds, with
+--- hours past an hour, and a minus sign once a countdown has run past zero.
+function M.clock(seconds)
+  local sign = seconds < 0 and "-" or ""
+  local t = floor(abs(seconds))
+  local hrs, mins, secs = floor(t / 3600), floor(t / 60) % 60, t % 60
+  if hrs > 0 then
+    return string.format("%s%d:%02d:%02d", sign, hrs, mins, secs)
+  end
+  return string.format("%s%d:%02d", sign, mins, secs)
+end
+
+--- The stats card: the flight's time, highest altitude and speed, and its
+--- lowest link quality and pack voltage (core/stats.lua), in `opts.units`.
+function M.stats(c, x, y, w, h, s, sc, opts)
+  local u = opts.units
+  local st = s.stats
+  local by = M.card(c, x, y, w, h, "Stats", sc)
+  local function dist(m)
+    return m and (units.formatDistance(m, u.distance) .. " " .. units.distanceLabel(u.distance))
+  end
+  -- The kind of speed the aircraft sends: airspeed, groundspeed, or over
+  -- passthrough without FRSKY_OPTIONS one number of either kind.
+  local speedLabel, speed = "Max speed", st.speed
+  if st.airspeed then
+    speedLabel, speed = "Max airspeed", st.airspeed
+  elseif st.groundspeed then
+    speedLabel, speed = "Max groundspeed", st.groundspeed
+  end
+  local lowest = s.battery[1].lowest
+  rows(c, x, y, w, h, by, sc, {
+    { "Flight time", st.time and M.clock(st.time) },
+    { "Max altitude", dist(st.alt) },
+    { speedLabel, speed and (units.formatSpeed(speed, u.speed) .. " " .. units.speedLabel(u.speed)) },
+    { "Min LQ", st.lq and (st.lq .. "%") },
+    { "Min battery", lowest and string.format("%.1f V", lowest) },
+  })
+end
+
+--- The timers card: the model's timers as the radio keeps them, from
+--- `opts.timers`, a list of { name, seconds }.
+function M.timers(c, x, y, w, h, s, sc, opts)
+  local by = M.card(c, x, y, w, h, "Timers", sc)
+  local list = {}
+  for i, t in ipairs(opts.timers or {}) do
+    list[i] = { t.name, M.clock(t.seconds) }
+  end
+  if #list == 0 then
+    list[1] = { "Timer", DASH }
+  end
+  rows(c, x, y, w, h, by, sc, list)
 end
 
 local FIX = { [0] = "No GPS", "No fix", "2D", "3D", "DGPS", "RTK float", "RTK fixed" }

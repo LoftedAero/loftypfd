@@ -28,6 +28,8 @@ local replay = use("replay")
 local crsfDecoder = use("crsf")
 local passthrough = use("passthrough")
 local home = use("home")
+local stats = use("stats")
+local tiles = use("tiles")
 local devices = use("devices")
 local menu = use("menu")
 local capture = use("capture")
@@ -316,6 +318,20 @@ local function radioDark()
   return true
 end
 
+-- The model's timers, as many as it has, named as Ethos names them.
+local function timers()
+  local out = {}
+  for i = 0, 7 do
+    local t = model.getTimer(i)
+    if not t then
+      break
+    end
+    local name = t:name()
+    out[#out + 1] = { name = name ~= "" and name or ("Timer " .. (i + 1)), seconds = t:value() }
+  end
+  return out
+end
+
 -- The radio's link sensors, found by name: ExpressLRS's link quality and a
 -- FrSky receiver's RSSI. Absent ones read as nothing.
 local function linkSensor(names)
@@ -429,6 +445,7 @@ local function poll(now)
     readLink()
   end
   home.update(link.state)
+  stats.update(link.state, now)
   speak(now)
 end
 
@@ -586,6 +603,7 @@ local function paint(w)
     w.tx.volts = txVolts(w)
     w.flight:paint(screen, link.state, {
       now = start, tx = w.tx, tiles = set.tiles, units = set.units, coords = set.coords, cells = set.cells,
+      timers = tiles.shows(set.tiles, "timers") and timers() or nil,
       settings = set.devicesButton,
     })
   end

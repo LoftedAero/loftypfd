@@ -33,7 +33,8 @@ function M.new()
     -- The radio's own home, kept when the aircraft sends none (core/home.lua).
     radioHome = nil,
     wpIndex = nil, wpDist = nil, wpBearing = nil,
-    -- Batteries by instance: volts, amps, used (mAh), pct, capacity (mAh).
+    -- Batteries by instance: volts, amps, used (mAh), pct, capacity (mAh),
+    -- and the lowest volts since arming (M.setVolts).
     battery = { {}, {} },
     -- Mode: the number (passthrough) or the four-letter name (CRSF).
     mavType = nil, modeNumber = nil, modeShort = nil,
@@ -48,8 +49,12 @@ function M.new()
     terrainHeight = nil, terrainUnhealthy = nil,
     range = nil,
     -- The radio link, from the receiver and transmitter rather than the
-    -- aircraft: RSSI in dBm, LQ and SNR.
+    -- aircraft. Uplink: rssi (the stronger antenna's), rssi1 and rssi2 in
+    -- dBm, lq in percent, snr in dB, txPower in mW. Downlink: downRssi,
+    -- downLq, downSnr.
     link = {},
+    -- The flight's statistics (core/stats.lua).
+    stats = {},
     -- Newest last: { text, severity, time }.
     messages = {},
     -- Called with each completed message, for alerts and voice.
@@ -115,6 +120,24 @@ end
 function M.isVtol(s)
   local name = M.modeName(s)
   return name ~= nil and modes.isVtol(name)
+end
+
+--- Sets a pack's voltage; 0 V, which a pack with no monitor reads, is none.
+--- Keeps the lowest since the aircraft armed, or since telemetry started
+--- where armed is unknown: the sag under load, which is how a pilot with no
+--- current sensor judges the pack.
+function M.setVolts(s, b, volts)
+  b.volts = volts > 0 and volts or nil
+  if not b.volts then
+    return
+  end
+  if s.armed and not b.lowestArmed then
+    b.lowest = nil
+  end
+  b.lowestArmed = s.armed
+  if not b.lowest or b.volts < b.lowest then
+    b.lowest = b.volts
+  end
 end
 
 --- A pack's cell count, worked out from its voltage the first time one

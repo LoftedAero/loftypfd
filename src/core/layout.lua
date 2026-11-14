@@ -77,7 +77,8 @@ end
 --- `opts.maps` are the map's (core/maps.lua). `opts.tiles` names the tile in
 --- each slot, top first (keys or places in core/tiles.lua's list); `opts.tx`
 --- is the transmitter's battery ({volts}); `opts.units`, `opts.coords` and
---- `opts.cells` are the pilot's (core/options.lua); `opts.settings`, true
+--- `opts.cells` are the pilot's (core/options.lua); `opts.timers` are the
+--- model's timers, for the Timers tile ({name, seconds}); `opts.settings`, true
 --- where the widget can be operated, adds the settings button at the bottom
 --- right, beside the message log.
 ---
@@ -141,7 +142,7 @@ function M.paint(c, s, opts)
   c.fill(0, h - msgH, w, msgH, T.bg)
   local chosen = opts.tiles or tiles.DEFAULT
   local slotH = floor((bodyH - gap) / 2)
-  local tileOpts = { units = u, coords = opts.coords, cells = opts.cells }
+  local tileOpts = { units = u, coords = opts.coords, cells = opts.cells, timers = opts.timers }
   for i = 1, 2 do
     local tile = tiles.get(chosen[i]) or tiles.get(tiles.DEFAULT[i])
     local y = barH + gap + (i - 1) * slotH

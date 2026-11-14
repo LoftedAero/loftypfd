@@ -85,7 +85,7 @@ function set.battery(s, volts, amps, used, pct)
   local b = s.battery[1]
   -- A pack with no monitor reads 0 V, and with no capacity set it reads
   -- 0%; neither is a reading, so both stay empty.
-  b.volts = volts > 0 and volts or nil
+  vehicle.setVolts(s, b, volts)
   b.amps = amps
   b.used = used
   b.pct = pct and pct > 0 and pct or nil
@@ -118,6 +118,10 @@ function set.flightMode(s, name)
   s.modeShort = string.gsub(name, "%s+$", "")
   vehicle.mark(s, "crsf.mode")
 end
+
+-- The link frame's uplink power is a step, not a number: these are its mW,
+-- the CRSF specification's list (EdgeTX's crossfire.cpp has the same).
+local TX_POWER = { [0] = 0, 10, 25, 100, 500, 1000, 2000, 250, 50 }
 
 local HANDLERS = {
   [0x1E] = function(s, d)
@@ -152,11 +156,13 @@ local HANDLERS = {
   [0x14] = function(s, d)
     local l = s.link
     -- Uplink RSSI is sent as -dBm for each antenna; the active one counts.
-    l.rssi = -(d[5] == 1 and d[2] or d[1])
+    -- 0 is no antenna: a receiver with one sends 0 for the other.
+    l.rssi1 = d[1] > 0 and -d[1] or nil
+    l.rssi2 = d[2] > 0 and -d[2] or nil
+    l.rssi = (d[5] == 1 and l.rssi2 or l.rssi1) or l.rssi1 or l.rssi2
     l.lq = d[3]
     l.snr = bits.signed(d[4], 8)
-    l.rfMode = d[6]
-    l.txPower = d[7]
+    l.txPower = TX_POWER[d[7]]
     l.downRssi = -d[8]
     l.downLq = d[9]
     l.downSnr = bits.signed(d[10], 8)

@@ -242,3 +242,105 @@ T.case("the bar: Lofty GCS's status pill and link, with the mode", function()
   layout.paint(c, vehicle.new(), { now = 10, tx = { volts = 8.1 } })
   T.eq(table.concat(bar, "|"), "No telemetry|8.1V|TX|-", "before an aircraft: the radio's side, no mode")
 end)
+
+T.case("the voltage-only battery tile shows the lowest since arming", function()
+  local s = vehicle.new()
+  local b = s.battery[1]
+  s.armed = false
+  vehicle.setVolts(s, b, 16.6)
+  vehicle.setVolts(s, b, 16.4)
+  T.eq(b.lowest, 16.4, "lowest while disarmed")
+  s.armed = true
+  vehicle.setVolts(s, b, 16.5)
+  T.eq(b.lowest, 16.5, "arming starts it again")
+  vehicle.setVolts(s, b, 14.8)
+  vehicle.setVolts(s, b, 15.6)
+  s.armed = false
+  vehicle.setVolts(s, b, 16.0)
+  T.eq(b.lowest, 14.8, "the flight's lowest stays after disarming")
+  vehicle.setVolts(s, b, 0)
+  T.eq(b.volts, nil, "0 V is no reading")
+  T.eq(b.lowest, 14.8, "and leaves the lowest")
+  s.lastFrame = 10
+  for _, size in ipairs({ { 800, 480 }, { 480, 320 }, { 480, 272 } }) do
+    local c = canvas(size[1], size[2])
+    layout.paint(c, s, { now = 10, tiles = { "batteryVoltage", "position" }, cells = 4 })
+    T.ok(c.has("Lowest") and c.has("14.8 V 3.70/cell"), "lowest, per cell, at " .. size[1])
+    T.ok(not c.has("Used") and not c.has("Load"), "no capacity or current rows")
+  end
+  local c = canvas(480, 320)
+  layout.paint(c, vehicle.new(), { now = 0, tiles = { 3, 2 } })
+  T.ok(c.has("Lowest"), "chosen by its place, as a radio stores it")
+end)
+
+-- A state with everything the link, stats and timers cards show.
+local function linked()
+  local s = busy()
+  local l = s.link
+  l.lq, l.rssi, l.rssi1, l.rssi2, l.snr, l.txPower = 99, -61, -61, -67, 7, 250
+  l.downRssi, l.downLq = -71, 100
+  s.airspeed = nil
+  local st = s.stats
+  st.time, st.alt, st.groundspeed, st.lq = 754, 121.4, 27.6, 64
+  s.battery[1].lowest = 14.8
+  return s
+end
+
+local TIMERS = { { name = "Flight", seconds = 754 }, { name = "Timer 2", seconds = -15 }, { name = "Timer 3", seconds = 3725 } }
+
+T.case("the link, stats and timers tiles, and what they show", function()
+  local panels = use("panels")
+  T.eq(panels.clock(754), "12:34", "minutes and seconds")
+  T.eq(panels.clock(-15), "-0:15", "a countdown past zero")
+  T.eq(panels.clock(3725), "1:02:05", "hours")
+  local c = canvas(800, 480)
+  layout.paint(c, linked(), { now = 10, tiles = { "link", "stats" } })
+  for _, str in ipairs({ "LQ 99%", "-61 dBm", "-61 / -67 dBm", "100%  -71 dBm", "250 mW",
+    "12:34", "121 m", "Max groundspeed", "27.6 m/s", "64%", "14.8 V" }) do
+    T.ok(c.has(str), str)
+  end
+  -- with one antenna, its row would repeat the RSSI, and SNR takes its place
+  local one = linked()
+  one.link.rssi2 = nil
+  for _, size in ipairs({ { 800, 480 }, { 480, 320 }, { 480, 272 } }) do
+    c = canvas(size[1], size[2])
+    layout.paint(c, one, { now = 10, tiles = { "link", "stats" } })
+    T.ok(not c.has("Antennas") and c.has("7 dB"), "one antenna: SNR shows at " .. size[1])
+  end
+  c = canvas(800, 480)
+  layout.paint(c, linked(), { now = 10, tiles = { 4, 6 }, timers = TIMERS })
+  T.ok(c.has("Flight") and c.has("12:34") and c.has("-0:15") and c.has("1:02:05"), "timers, by place")
+  c = canvas(800, 480)
+  layout.paint(c, vehicle.new(), { now = 0, tiles = { "link", "timers" } })
+  T.ok(c.has("LQ -") and c.has("Timer"), "dashes before anything arrives")
+  local tiles = use("tiles")
+  T.ok(tiles.shows({ 1, 6 }, "timers") and not tiles.shows({ 1, 2 }, "timers"), "which slots show timers")
+end)
+
+T.case("the new tiles' rows fit their tile at every size", function()
+  for _, size in ipairs({ { 800, 480 }, { 480, 320 }, { 480, 272 } }) do
+    for _, pair in ipairs({ { "link", "stats" }, { "timers", "batteryVoltage" } }) do
+      local c = canvas(size[1], size[2])
+      local lines = {}
+      -- The radios' fonts average about half an em a character.
+      function c.textWidth(str, sz)
+        return #str * sz * 0.55
+      end
+      local text = c.text
+      function c.text(x, y, str, sz)
+        if x > size[1] * 0.6 then
+          local k = math.floor(y + 0.5)
+          lines[k] = (lines[k] or 0) + c.textWidth(str, sz)
+        end
+        text(x, y, str)
+      end
+      layout.paint(c, linked(), { now = 10, tiles = pair, timers = TIMERS, cells = 4 })
+      for y, width in pairs(lines) do
+        -- the tile, less its gaps, its rows' padding and a space between
+        local sc = math.max(0.75, math.min(1.5, math.min(size[1], size[2]) / 320))
+        local room = math.floor(size[1] * 0.36) - math.floor(4 * sc) * 2 - 18 * sc
+        T.ok(width <= room, pair[1] .. ": the line at " .. y .. " fits at " .. size[1] .. " (" .. width .. " of " .. room .. ")")
+      end
+    end
+  end
+end)

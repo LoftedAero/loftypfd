@@ -28,6 +28,8 @@ local crsf = use("crsf")
 local passthrough = use("passthrough")
 local sensors = use("sensors")
 local home = use("home")
+local stats = use("stats")
+local tiles = use("tiles")
 local devices = use("devices")
 local menu = use("menu")
 local callouts = use("callouts")
@@ -86,6 +88,23 @@ end
 
 local function update(w, values)
   w.settings = settingsOf(values)
+end
+
+-- The model's timers that are on, as the radio shows them: a countdown's
+-- time left, or its time gone where the pilot asked for that.
+local function timers()
+  local out = {}
+  for i = 0, 2 do
+    local t = model.getTimer(i)
+    if t and t.mode ~= 0 then
+      local seconds = t.value
+      if t.showElapsed and t.start > 0 then
+        seconds = t.start - t.value
+      end
+      out[#out + 1] = { name = t.name ~= "" and t.name or ("Timer " .. (i + 1)), seconds = seconds }
+    end
+  end
+  return out
 end
 
 -- Telemetry sensors, found by where EdgeTX keeps them rather than by name
@@ -154,6 +173,7 @@ local function decode(w)
     sensors.apply(s, readSensor, now)
   end
   home.update(s)
+  stats.update(s, now)
   speak(w, now)
 end
 
@@ -199,6 +219,7 @@ local function refresh(w, event, touch)
   end
   w.flight:paint(screen, w.state, {
     now = now, tx = w.tx, tiles = set.tiles, units = set.units, coords = set.coords, cells = set.cells,
+    timers = tiles.shows(set.tiles, "timers") and timers() or nil,
     settings = event ~= nil and set.devicesButton,
   })
 end

@@ -96,7 +96,7 @@ settings from the screen setup.
 
 | Setting | Choices |
 | --- | --- |
-| Top tile, Bottom tile | Battery, Position |
+| Top tile, Bottom tile | Battery, Position, Battery voltage (for a pack with no current sensor), Link, Stats, Timers |
 | Theme | Match the radio, Light, Dark |
 | Distance and altitude | Meters, Feet |
 | Speed | Meters per second, Kilometers per hour, Knots, Miles per hour |

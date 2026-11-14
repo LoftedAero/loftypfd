@@ -92,7 +92,11 @@ is no other specification.
 - **Satellites** are capped at 15 in passthrough (4 bits).
 - **Zeros are not readings** on either encoding: without a fix ArduPilot sends latitude and
   longitude 0 (seen on the X20 over S.Port), and without a battery 0 V; both stay nil.
-- **Link statistics** (0x14) come from the receiver and transmitter, not ArduPilot.
+- **Link statistics** (0x14) come from the receiver and transmitter, not ArduPilot. The
+  uplink's power is a step (0-8), shown in mW from the CRSF specification's list; 0 RSSI
+  is an antenna the receiver does not have. On EdgeTX the frame arrives as sensors, whose
+  antenna sensor counts from 1 for ELRS in 2.12 and later and from 0 otherwise, so the
+  stronger antenna's RSSI counts rather than the one it names.
 - **Both encodings at once.** With passthrough on, ArduPilot keeps sending the standard
   frames too, at different rates (measured in SITL: GPS and flight mode every 0.5 s;
   battery, altitude, climb and attitude every 1 s; passthrough attitude every 0.35 s, its
@@ -290,6 +294,17 @@ hairline frame and the orange rule under the title, a charcoal bar.
   change, not each frame. The button beside the log opens devices only (Eric's choice, for now). Yaapu's
   alert thresholds are left out: thresholds come from the aircraft.
 - **Tiles** (`core/tiles.lua`) fill the two slots; Battery and Position by default.
+  Battery voltage is the battery card for a pack with no current sensor, common on these
+  models: in place of used, level and load it shows the lowest voltage since arming
+  (`vehicle.setVolts`, the minimum of what the aircraft sent), the sag under load being
+  what tells such a pack's state. For models with no GPS and a bare battery monitor there
+  are also Link (the receiver's and module's statistics, which ELRS sends with no flight
+  controller at all), Stats (`core/stats.lua`: flight time from arming, highest altitude
+  and speed, lowest LQ and voltage; reset at arming, kept after) and Timers (the model's
+  timers, read by the platform only while that tile shows: EdgeTX's `model.getTimer` with
+  mode 0 off, Ethos's `model.getTimer(i)` objects, `:value()` and `:name()`, empty when
+  unnamed). Ethos reads only LQ and RSSI as sensors so far; the rest of Link fills there
+  only if its CRSF queue passes the 0x14 frame, unconfirmed.
 - **Light and dark** (`core/palette.lua`): panels and the browser follow the radio's theme,
   or the widget's Theme setting where the pilot chose one. Ethos says so (`lcd.darkMode()`,
   1.6); EdgeTX has no flag, so its theme counts as dark when its background

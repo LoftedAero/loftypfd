@@ -23,7 +23,8 @@ M.CRSF = {
   GPS = { 0x02, 0 }, GSpd = { 0x02, 2 }, Hdg = { 0x02, 3 }, GAlt = { 0x02, 4 }, Sats = { 0x02, 5 },
   RxBt = { 0x08, 0 }, Curr = { 0x08, 1 }, Capa = { 0x08, 2 }, ["Bat%"] = { 0x08, 3 },
   Alt = { 0x09, 0 }, VSpd = { 0x07, 0 }, FM = { 0x21, 0 },
-  ["1RSS"] = { 0x14, 0 }, ["2RSS"] = { 0x14, 1 }, RQly = { 0x14, 2 }, RSNR = { 0x14, 3 }, ANT = { 0x14, 4 },
+  ["1RSS"] = { 0x14, 0 }, ["2RSS"] = { 0x14, 1 }, RQly = { 0x14, 2 }, RSNR = { 0x14, 3 },
+  TPWR = { 0x14, 6 }, TRSS = { 0x14, 7 }, TQly = { 0x14, 8 }, TSNR = { 0x14, 9 },
 }
 
 local byPlace = {}
@@ -104,6 +105,12 @@ end
 
 local set = crsf.set
 
+local function dbm(v)
+  if v and v ~= 0 then
+    return v > 0 and -v or v
+  end
+end
+
 --- Applies the sensors to state `s`. `read(name)` returns a sensor's value,
 --- whether it is current (not timed out) and whether it is fresh (just
 --- received), or nothing for a sensor that has never reported: EdgeTX's
@@ -153,16 +160,22 @@ function M.apply(s, read, now)
     set.flightMode(s, mode)
   end
 
-  -- EdgeTX keeps the receiver's RSSI per antenna; the active one counts.
-  -- The value is in dBm, which some firmware reports as a positive number.
+  -- RSSI is in dBm, which some firmware reports as a positive number, and
+  -- 0 is an antenna a receiver does not have. The stronger antenna counts:
+  -- the antenna sensor cannot say which is active, since EdgeTX 2.12 counts
+  -- ELRS's from 1 and 2.11 and Crossfire's from 0.
   local l = s.link
-  local antenna = get("ANT")
-  local rssi = antenna == 1 and get("2RSS") or get("1RSS")
-  if rssi then
-    l.rssi = rssi > 0 and -rssi or rssi
+  local r1, r2 = dbm(get("1RSS")), dbm(get("2RSS"))
+  if r1 or r2 then
+    l.rssi1, l.rssi2 = r1, r2
+    l.rssi = (r1 and r2) and math.max(r1, r2) or r1 or r2
   end
   l.lq = get("RQly") or l.lq
   l.snr = get("RSNR") or l.snr
+  l.txPower = get("TPWR") or l.txPower
+  l.downRssi = dbm(get("TRSS")) or l.downRssi
+  l.downLq = get("TQly") or l.downLq
+  l.downSnr = get("TSNR") or l.downSnr
 
   if arrived then
     s.lastFrame = now

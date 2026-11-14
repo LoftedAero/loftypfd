@@ -37,8 +37,7 @@ M.num = num
 local function battery(s, i, w)
   local b = s.battery[i]
   -- No monitor reads 0 V: it is a battery not there, as over plain CRSF.
-  local volts = field(w, 0, 9) / 10
-  b.volts = volts > 0 and volts or nil
+  vehicle.setVolts(s, b, field(w, 0, 9) / 10)
   b.amps = num(w, 9, 2, 1, false) / 10
   b.used = field(w, 17, 15)
 end
