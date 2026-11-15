@@ -19,7 +19,7 @@ T.case("finds a device and reads its top level only", function()
   local dev, client, now = found()
   local d = client.devices[FC]
   T.ok(d, "device found")
-  T.eq(d.name, "Gyro", "name")
+  T.eq(d.name, "Stabilization", "name")
   T.eq(d.count, 8, "count")
   client:load(FC)
   now = run(client, dev, now)

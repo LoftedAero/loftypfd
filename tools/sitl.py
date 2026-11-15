@@ -59,8 +59,9 @@ HISTORY_S = 120
 
 # The gyro defaults that matter here: arm switch on 5, three-position mode
 # switch on 6 (Manual low, FBWA middle and high), and CRSF on serial 5.
-# RC_OPTIONS 96 is the gyro's own; bit 12 adds the disarmed star to CRSF
-# flight modes and bit 8 switches CRSF telemetry to passthrough.
+# RC_OPTIONS 96 is the base of the gyro's own; bit 12 adds the disarmed star
+# to CRSF flight modes (the Kakute and Lucid defaults, 4192) and bit 8
+# switches CRSF telemetry to passthrough (the LoftedAero-SRX defaults, 12640).
 PARAMS = """
 ARMING_REQUIRE 1
 ARMING_SKIPCHK -65

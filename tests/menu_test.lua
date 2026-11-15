@@ -85,11 +85,11 @@ end
 
 T.case("devices, a device, a folder, and Back one level at a time", function()
   local b = browser()
-  T.ok(b.paint().has("Gyro"), "the gyro is listed")
+  T.ok(b.paint().has("Stabilization"), "the gyro is listed")
   b.app:event("enter")
   b.run()
   local c = b.paint()
-  T.ok(c.has("Gyro"), "the device's name is the title")
+  T.ok(c.has("Stabilization"), "the device's name is the title")
   T.ok(c.has("5 Failsafe"), "a folder")
   T.ok(c.has("DISARMED MANUAL GPS none"), "a reading")
   T.ok(not c.has("Link loss"), "a folder's entries stay in it")
@@ -164,11 +164,18 @@ T.case("a number steps by the device's step and stops at its limits", function()
   T.eq(menu.step(e, 395, 1), 400, "stops at the maximum")
   T.eq(menu.step(e, 20, -1), 20, "and the minimum")
   T.eq(menu.valueText(b.client.devices[fake.FC].entries[6]), "0.25", "decimals")
+  -- the gyro's gains: three decimals in steps of 0.005
+  local gain = { type = devices.FIELD.float, raw = 150, min = 0, max = 1000, decimals = 3, step = 5, unit = "" }
+  T.eq(menu.valueText(gain), "0.150", "as many decimals as the device says")
+  T.eq(menu.valueText(gain, menu.step(gain, 150, 1)), "0.155", "stepped in the last of them")
+  local down = { type = devices.FIELD.float, raw = -25, min = -60, max = -5, decimals = 0, step = 5, unit = "deg" }
+  T.eq(menu.valueText(down), "-25 deg", "a negative number")
+  T.eq(menu.step(down, -10, 1), -5, "stops at a negative maximum")
 end)
 
 T.case("touch: a tap opens a folder, edits, steps and writes", function()
   local b = browser()
-  b.tap("Gyro")
+  b.tap("Stabilization")
   b.run()
   b.tap("5 Failsafe")
   b.run(20)

@@ -93,8 +93,8 @@ The run finds the flight controller's COM port by itself; if it can't, give it w
    repeats step 3, rocking included.
 5. **Device browser:** follow the prompt.
    - Tap the sliders button and open every device and every folder.
-   - In the Gyro, change one setting and change it back. The Radio folder's Autotune
-     switch is a safe one.
+   - In Stabilization (the gyro; "Gyro" on firmware before 2026-11-14b), change one setting
+     and change it back. The Radio folder's Autotune switch is a safe one.
    - Run no commands.
 6. **Puts back what it changed** (GPS1_TYPE, RC_OPTIONS) and reboots. If it can't, it says so
    in capitals.
@@ -195,7 +195,7 @@ that looks wrong, along with the time.
     the HUD; on the map it shows a little horizon.
 - **Device browser:**
   - Values edit in their box, with the step arrows.
-  - The Gyro's Learn buttons sit beside their channels.
+  - The gyro's Learn buttons sit beside their channels.
   - A long list scrolls by drag and by rotary.
   - Back goes up one level, then back to the flight display.
 - **Voice and alerts:** listen as the run goes.

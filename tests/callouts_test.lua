@@ -119,8 +119,8 @@ T.case("messages: clips where there are, tones by severity, repeats quiet", func
   T.eq(say("Bad GPS Health", 2, 60), "sev-crit=bad-gps-health", "said again after a quiet spell")
   T.eq(say("Something unusual", 2, 61), "sev-crit:warn", "no clip: the warning tone")
   T.eq(say("Compass not calibrated", 3, 62), "sev-err:warn", "an error, no clip")
-  T.eq(say("Gyro: disarm to calibrate", 4, 63), "sev-warn:warn", "a warning beeps")
-  T.eq(say("Gyro: setup menu ready (76 entries)", 6, 64), "", "information is quiet")
+  T.eq(say("StabRX: disarm to calibrate", 4, 63), "sev-warn:warn", "a warning beeps")
+  T.eq(say("StabRX: setup menu ready (89 entries)", 6, 64), "", "information is quiet")
   T.eq(say("Bad or No Terrain Data", 2, 65), "", "terrain is off")
   T.eq(say("PreArm: Throttle too high", 3, 66), "", "PreArm is off")
   T.eq(say("Arm: Throttle too high", 3, 67), "arm-refused:warn", "a refused arm beeps")
@@ -159,7 +159,7 @@ T.case("warning beeps can wait for arming; spoken messages and refusals do not",
   for i = 0, 80 do
     at(i / 20)
   end
-  vehicle.addMessage(s, "Gyro: disarm to calibrate", 4, 5)
+  vehicle.addMessage(s, "StabRX: disarm to calibrate", 4, 5)
   vehicle.addMessage(s, "Compass not calibrated", 3, 5)
   vehicle.addMessage(s, "Arm: Throttle too high", 3, 5)
   vehicle.addMessage(s, "Bad GPS Health", 2, 5)
@@ -168,7 +168,7 @@ T.case("warning beeps can wait for arming; spoken messages and refusals do not",
   said = {}
   s.armed = true
   at(5.1)
-  vehicle.addMessage(s, "Gyro: disarm to calibrate again", 4, 6)
+  vehicle.addMessage(s, "StabRX: disarm to calibrate again", 4, 6)
   at(6)
   T.eq(table.concat(said, " "), "armed sev-warn:tone", "armed: the beep")
 end)

@@ -451,9 +451,10 @@ def run(args):
         if link == "elrs" and not yes:
             start = time.time()
             ask("Device browser: on the radio, tap the sliders button at the bottom right.\n"
-                "  Open every device listed, and in each every folder. In the Gyro, change one\n"
-                "  setting (the Radio folder's Autotune switch, say) and change it back. Run no\n"
-                "  commands. Then press Back until the flight display shows again.")
+                "  Open every device listed, and in each every folder. In Stabilization (the gyro;\n"
+                "  \"Gyro\" on firmware before 2026-11-14b), change one setting (the Radio folder's\n"
+                "  Autotune switch, say) and change it back. Run no commands. Then press Back until\n"
+                "  the flight display shows again.")
             session.data["menu"] = [start, time.time()]
         home = bench.home()
         session.data["home"] = home

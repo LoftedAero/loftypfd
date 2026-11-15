@@ -43,16 +43,19 @@ def opened(sitl, radio, folder, limit=30):
     return False
 
 
-def find(sitl, radio, folder_name, name):
-    top = radio.call("children", FC, 0)
-    for i in range(1, len(top) + 1):
-        if top[i]["name"] == folder_name:
-            opened(sitl, radio, top[i]["id"])
-            kids = radio.call("children", FC, top[i]["id"])
-            for k in range(1, len(kids) + 1):
-                if kids[k]["name"] == name:
-                    return kids[k]
-    return None
+def find(sitl, radio, *path):
+    """The entry at a path of names from the top level, each folder on the
+    way opened."""
+    kids = radio.call("children", FC, 0)
+    entry = None
+    for depth, name in enumerate(path):
+        entry = next((kids[i] for i in range(1, len(kids) + 1) if kids[i]["name"] == name), None)
+        if entry is None:
+            return None
+        if depth < len(path) - 1:
+            opened(sitl, radio, entry["id"])
+            kids = radio.call("children", FC, entry["id"])
+    return entry
 
 
 def device_menu(sitl, radio):
@@ -110,14 +113,43 @@ def device_menu(sitl, radio):
     radio.call("write", FC, link_loss["id"], 0 if before == 2 else 1)
     radio.pump(sitl.crsf, 3)
 
-    rate = find(sitl, radio, "6 Tuning", "ACRO roll rate")
+    rate = find(sitl, radio, "6 Tuning", "Roll gains", "ACRO roll rate")
     before = sitl.mav.param("ACRO_ROLL_RATE")
     radio.call("write", FC, rate["id"], 250)
     radio.pump(sitl.crsf, 3)
     got = sitl.mav.param("ACRO_ROLL_RATE")
-    check("a number writes", got == 250 and client.devices[FC]["entries"][rate["id"]]["value"] == 250, got)
+    check("a number in a folder's folder writes",
+          got == 250 and client.devices[FC]["entries"][rate["id"]]["value"] == 250, got)
     radio.call("write", FC, rate["id"], int(before))
     radio.pump(sitl.crsf, 3)
+
+    # The gains are the entries with the most decimals (3), in steps of 5.
+    gain = find(sitl, radio, "6 Tuning", "Roll gains", "P")
+    before = sitl.mav.param("RLL_RATE_P")
+    raw = gain["raw"]
+    check("a gain reads with its decimals", gain["decimals"] == 3 and abs(gain["value"] - before) < 0.0005,
+          "%s (raw %s, %s decimals), RLL_RATE_P %.4f" % (gain["value"], raw, gain["decimals"], before))
+    radio.call("write", FC, gain["id"], raw + 5)
+    radio.pump(sitl.crsf, 3)
+    got = sitl.mav.param("RLL_RATE_P")
+    after = client.devices[FC]["entries"][gain["id"]]
+    check("and writes by them", after["raw"] == raw + 5 and abs(got - (raw + 5) / 1000) < 0.0005,
+          "raw %s, RLL_RATE_P %.4f" % (after["raw"], got))
+    radio.call("write", FC, gain["id"], raw)
+    radio.pump(sitl.crsf, 3)
+
+    down = find(sitl, radio, "6 Tuning", "FBWA pitch down")
+    param = sitl.mav.param("PTCH_LIM_MIN_DEG")
+    check("a negative number reads", down["value"] < 0 and down["value"] == param,
+          "%s, PTCH_LIM_MIN_DEG %s" % (down["value"], param))
+
+    # Hidden, so it is in the folder's entries and not among its children;
+    # Gyro Setup will read the layout's version here.
+    tools = find(sitl, radio, "Tools")
+    opened(sitl, radio, tools["id"])
+    version = next((e for e in client.devices[FC]["entries"].values() if e["name"] == "Menu version"), None)
+    check("Tools holds the hidden menu version", version is not None and version["hidden"]
+          and version["parent"] == tools["id"] and version["value"] == "3", version and version["value"])
 
     cmd = find(sitl, radio, "3 Flight modes", "Check mode switch")
     radio.call("command", FC, cmd["id"], 1)
@@ -210,11 +242,13 @@ def browser(sitl, radio, client):
         return ok
 
     pump(3)
-    tap("Gyro")
+    tap("Stabilization")
     check("the browser opens the gyro", "5 Failsafe" in ui.screen(app).split("|"), ui.screen(app))
 
     tap("6 Tuning")
-    rate = find(sitl, radio, "6 Tuning", "ACRO roll rate")
+    find(sitl, radio, "6 Tuning", "Roll gains")
+    tap("Roll gains")
+    rate = find(sitl, radio, "6 Tuning", "Roll gains", "ACRO roll rate")
     before = sitl.mav.param("ACRO_ROLL_RATE")
     tap("ACRO roll rate")
     editing = app.edit is not None
@@ -231,7 +265,10 @@ def browser(sitl, radio, client):
 
     event("back")
     title = ui.screen(app).split("|")
-    check("Back goes up one level", "Gyro" in title and "5 Failsafe" in title, title[:3])
+    check("Back goes up one level", "6 Tuning" in title and "Roll gains" in title and "Speeds" in title, title[:3])
+    event("back")
+    title = ui.screen(app).split("|")
+    check("and then one more", "Stabilization" in title and "5 Failsafe" in title, title[:3])
 
     tap("3 Flight modes")
     tap("Check mode switch")

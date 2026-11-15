@@ -147,7 +147,7 @@ local function fakeDevice(opts)
     for _, f in ipairs(dev.sent) do
       local t, p = f[1], f[2]
       if t == 0x28 then
-        replies[#replies + 1] = { 0x29, str({ RADIO, FC }, "Gyro") }
+        replies[#replies + 1] = { 0x29, str({ RADIO, FC }, "Stabilization") }
         local r = replies[#replies][2]
         i32(r, 0x04070000)
         i32(r, 0)

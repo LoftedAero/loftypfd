@@ -47,8 +47,8 @@ aircraft never sent. SI units and degrees inside; conversion happens on screen.
 - **0 V and 0%.** Plain CRSF's battery frame has no "absent": no monitor reads 0 V and no
   capacity reads 0%. Both are kept nil.
 - **Armed on plain CRSF** is known only when ArduPilot appends `*` to a disarmed flight mode
-  (RC_OPTIONS bit 12, `CRSF_FM_DISARM_STAR`). Without it, armed stays nil. The gyro defaults
-  (RC_OPTIONS 96) do not set it, so either the gyro turns it on or its users fly passthrough.
+  (RC_OPTIONS bit 12, `CRSF_FM_DISARM_STAR`). Without it, armed stays nil. The gyro boards'
+  defaults set it (see "The gyro"); boards flashed with older defaults keep RC_OPTIONS 96.
 - **Speed over passthrough** is one number whose kind is unknown: ArduPilot sends airspeed
   when it has an estimate and groundspeed otherwise. Only with FRSKY_OPTIONS bit 2 does it
   alternate them and flag airspeed (bit 28), which is when `airspeed` and `groundspeed` fill;
@@ -140,9 +140,9 @@ hidden), name, then a value whose layout depends on the type. Long entries span 
 - **While a menu loads, telemetry waits.** While disarmed, any pending menu read puts
   ArduPilot in a "params mode" that turns off every telemetry frame until 5 s after the
   last read (`AP_CRSF_Telem::adjust_packet_weight`); armed, it never enters it. Measured in
-  gyro SITL (2026-11-13): reading all 91 entries took 8 s and stopped GPS, battery,
-  attitude and flight mode for 13 s; opening the device now stops them for 5.5 s (0.5 s of
-  reads), and each folder for 5.2-6 s. ArduPilot's answer to a ping does not start the
+  gyro SITL (2026-11-13, when it had 91 entries): reading all of them took 8 s and stopped
+  GPS, battery, attitude and flight mode for 13 s; opening the device now stops them for
+  5.5 s (0.5 s of reads), and each folder for 5.2-6 s. ArduPilot's answer to a ping does not start the
   mode but restarts its 5 s while it is on. So, disarmed, readings are not refreshed and
   the device list pings every 6 s (see "The device browser").
 - **A folder is read when it opens.** A read of entry 0 is answered with a root folder
@@ -209,15 +209,36 @@ card of rows, label left and the control in one column on the right.
 ## The gyro
 
 Lofted Aero's gyro firmware (WSL `~/ardupilot-gyro`, `GYRO_README.md`) is a stripped
-ArduPlane that serves its whole setup menu over CRSF as device 0xC8, named "Gyro". Its
-SITL build (`build/sitl/bin/arduplane`, built with `Tools/gyro/sitl-gyro.hwdef`) serves the
-same menu, which is what `tests/sitl_test.py` drives.
+ArduPlane that serves its whole setup menu over CRSF as device 0xC8, named "Stabilization"
+("Gyro" before menu version 3; the ExpressLRS script shows "[Stabilization]"). Its status
+texts start "StabRX:" ("Gyro:" before). Nothing here compares the name. Its SITL build
+(`build/sitl/bin/arduplane`, built with `--extra-hwdef=Tools/gyro/sitl-gyro.hwdef`) serves
+the same menu, which is what `tests/sitl_test.py` drives.
 
+- **Menu version** is the hidden info entry last in Tools, which says which layout a board
+  serves; Gyro Setup is to key its screens on it and on folder paths, never on ids. "2" is
+  the builds of 2026-11-13 and 2026-11-14: the second already had a "7 Speeds" folder and a
+  yaw gain, so no gain, yaw or speed entry is relied on for "2". "3" is 2026-11-14b on.
+- **Layout 3:** 108 entries (89 settings, 19 folders). The top level is Status, 1
+  Calibration, 2 Radio, 3 Flight modes, 4 Outputs, 5 Failsafe, 6 Tuning and Tools (ids 1,
+  2, 7, 19, 24, 75, 79, 105 in SITL). 6 Tuning holds the gain knob's range, the FBWA limits
+  and the autotune level, then four folders: Speeds (cruise, min, max), Roll gains and Pitch
+  gains (FF, P, I, D, the ACRO rate), Yaw gains (yaw damper, rudder mix). The RTL switch and
+  RTL altitude are hidden without a GPS (status NO_GPS; a GPS without a fix counts), and an
+  "RTL" reading saying "needs a GPS" shows instead.
+- **Decimals:** at most 3, since the ExpressLRS script caps a float's precision at 3 but
+  still divides by 10^3. The client shows as many as the entry says.
+- **Telemetry:** the Kakute and Lucid defaults set RC_OPTIONS 4192 (bit 12, the disarmed
+  star; plain CRSF). The LoftedAero-SRX defaults set 12640, which adds bit 8: passthrough.
 - **Chunks:** each carries up to 55 bytes of the entry from chunk x 55, the parent byte
   before the first only (`tests/lib/fakegyro.lua` splits the same way, and the stock way
   with `oldChunks`).
-- **Armed,** it refuses every write except the numbers in "6 Tuning"; the read-back shows
-  the value unchanged. The model does not arm while a command dialog is open.
+- **Armed,** it refuses every write except the numbers in "6 Tuning" other than its speeds
+  (with a GPS a new cruise speed rescales every gain); the read-back shows the value
+  unchanged, with "StabRX: disarm to change <entry>". Commands answer "Disarm first",
+  except Check mode switch. The model does not arm while a command dialog is open.
+- **The speeds stay ordered:** min < cruise < max, and the read-back is the value kept,
+  which can differ from the one written.
 - **A command ends itself** with "Timed out" when the radio stops asking: 10 s without a
   poll while in progress, 2 minutes while waiting for confirmation.
 
