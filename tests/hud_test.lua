@@ -147,17 +147,23 @@ end)
 T.case("Ethos: the whole 800x480 screen in one paint stays within budget", function()
   local flight = use("flight")
   local noop = function() end
-  local c = { w = 800, h = 480, fill = noop, tri = noop, line = noop, text = noop, image = noop }
+  -- With an origin, as Ethos's screen has: a wrapping canvas cost 4,000
+  -- more, and the X20 stopped paints with the message log full.
+  local c = { w = 800, h = 480, fill = noop, tri = noop, line = noop, text = noop, image = noop, origin = noop }
   function c.textWidth(str, size)
     return #str * size * 0.6
   end
   local f = flight.new({ layers = {}, root = "maps/" })
+  local s = busy()
+  for i = 1, 4 do
+    vehicle.addMessage(s, "LoftedAero-SRX-gyro 003C003B 3435510A " .. i, 6, 9)
+  end
   local n = count(function()
-    f:paint(c, busy(), { now = 10, settings = true })
+    f:paint(c, s, { now = 10, settings = true })
   end)
-  -- The core's share; Ethos's drawing wrappers add about 20 a call, some
-  -- 230 calls.
-  T.ok(n < 13000, "an 800x480 screen took " .. n .. " instructions")
+  -- The core's share; Ethos's drawing functions add about 20 a call, some
+  -- 260 calls.
+  T.ok(n < 10000, "an 800x480 screen took " .. n .. " instructions")
 end)
 
 -- The convention every attitude indicator gets wrong once: in a right bank

@@ -16,7 +16,7 @@ place of a telemetry link, and --menu a recorded device menu as menu.txt
 (tools/sitl.py menu), which the device browser browses in place of the link,
 with tools/snapshot.lua answering from it. --maps copies a folder of map tiles
 as Lofty GCS's "Copy to radio" writes them (index.txt and <layer>/<z>/<x>/<y>.jpg)
-into the widget's maps folder. --capture makes an Ethos test build, which
+into the widget's maps folder. --capture makes a test build, which
 records its link for tools/hwtest.py (core/capture.lua).
 
 --edgetx copies the widget onto the TX15 simulator's SD card
@@ -146,7 +146,7 @@ def build(replay, menu, maps=None, capture=False):
             shutil.copy2(ROOT / "tools" / "snapshot.lua", out / "core" / "snapshot.lua")
         if maps:
             shutil.copytree(maps, out / "maps")
-        if capture and name == "ethos":
+        if capture:
             (out / "capture.on").write_text("")
         print("built " + (DIST / name).relative_to(ROOT).as_posix())
 
@@ -225,7 +225,7 @@ def main():
     ap.add_argument("--replay", type=pathlib.Path)
     ap.add_argument("--menu", type=pathlib.Path)
     ap.add_argument("--maps", type=pathlib.Path)
-    ap.add_argument("--capture", action="store_true", help="an Ethos test build that records its link")
+    ap.add_argument("--capture", action="store_true", help="a test build that records its link")
     ap.add_argument("--edgetx", action="store_true", help="copy to the TX15 simulator's SD card")
     ap.add_argument("--ethos", action="store_true", help="copy to Ethos Suite's simulator storage")
     ap.add_argument("--sd", type=pathlib.Path, help="install the build on a radio's SD card")

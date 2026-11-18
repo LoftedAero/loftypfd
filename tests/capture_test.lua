@@ -59,3 +59,62 @@ T.case("a capture plays back, S.Port words included", function()
   T.near(s.roll, 10, 0.01, "the S.Port word")
   T.ok(s.passthrough, "as passthrough")
 end)
+
+-- EdgeTX's sensors as a capture records them (Y lines), and decoded again as
+-- tools/hwtest.py does: the same state as the radio's.
+T.case("EdgeTX's sensors are recorded as they change, and play back", function()
+  local sensors = use("sensors")
+  local out = {}
+  local c = capture.new(function(text)
+    out[#out + 1] = text
+  end)
+  local values = {
+    Ptch = { 0.1, true, true }, Roll = { -0.5, true, true }, Yaw = { 3.0, true, true },
+    GPS = { { lat = -35.3632611, lon = 149.1652301 }, true, true }, GSpd = { 36, true, true },
+    Hdg = { 90, true, true }, GAlt = { 600, true, true }, Sats = { 12, true, true },
+    RxBt = { 12.6, true, true }, FM = { "FBWA *", true, true }, RQly = { 99, true, true },
+  }
+  local direct = vehicle.new()
+  local function call(now)
+    sensors.apply(direct, function(name)
+      local v = values[name]
+      if v then
+        c:sensor(name, v[1], v[2], v[3])
+        return v[1], v[2], v[3]
+      end
+    end, now)
+    c:sensorsDone(now)
+  end
+  call(1)
+  -- unchanged and none fresh: nothing to write
+  for _, v in pairs(values) do
+    v[3] = false
+  end
+  call(1.05)
+  call(1.1)
+  values.Roll = { -0.6, true, true }
+  call(1.15)
+  c:flush()
+  local text = table.concat(out)
+  local lines = {}
+  for line in string.gmatch(text, "[^\n]+") do
+    lines[#lines + 1] = line
+  end
+  T.eq(#lines, 3, "the first call, the one that cleared the fresh flags, and the change")
+  T.ok(string.find(lines[1], "FM=sFBWA%20*/cf", 1, true), "a string's space escaped")
+  T.ok(string.find(lines[1], "GPS=g-35.3632611,149.1652301/cf", 1, true), "the GPS as lat,lon")
+  T.eq(lines[3], "1.150 Y Roll=n-0.6/cf", "only what changed")
+
+  local reader = capture.sensorReader()
+  local played = vehicle.new()
+  for _, line in ipairs(lines) do
+    local t, fields = string.match(line, "^(%S+) Y ?(.*)$")
+    reader.apply(fields)
+    sensors.apply(played, reader.read, tonumber(t))
+  end
+  for _, k in ipairs({ "roll", "pitch", "yaw", "lat", "lon", "groundspeed", "sats", "altMsl", "armed", "modeShort", "lastFrame" }) do
+    T.eq(played[k], direct[k], k)
+  end
+  T.eq(played.battery[1].volts, direct.battery[1].volts, "volts")
+  T.eq(played.link.lq, direct.link.lq, "link quality")
+end)

@@ -109,19 +109,28 @@ local ALIGN = { left = TEXT_LEFT, center = TEXT_CENTERED, right = TEXT_RIGHT }
 
 -- The screen.
 local screen = {}
+
+-- An origin the layout sets while the HUD draws in its part of the screen:
+-- an addition per coordinate here, where a wrapping canvas costs a call per
+-- draw, about 2,000 instructions of a paint near its limit on the X20.
+local ox, oy = 0, 0
+function screen.origin(x, y)
+  ox, oy = x, y
+end
+
 function screen.fill(x, y, w, h, c, alpha)
   lcd.color(color(c, alpha))
-  lcd.drawFilledRectangle(floor(x), floor(y), floor(w + 0.5), floor(h + 0.5))
+  lcd.drawFilledRectangle(floor(x + ox), floor(y + oy), floor(w + 0.5), floor(h + 0.5))
 end
 function screen.tri(x1, y1, x2, y2, x3, y3, c, alpha)
   lcd.color(color(c, alpha))
-  lcd.drawFilledTriangle(floor(x1), floor(y1), floor(x2), floor(y2), floor(x3), floor(y3))
+  lcd.drawFilledTriangle(floor(x1 + ox), floor(y1 + oy), floor(x2 + ox), floor(y2 + oy), floor(x3 + ox), floor(y3 + oy))
 end
 -- Ethos lines are one pixel wide; a wider one is several, offset across
 -- whichever axis the line runs least along.
 function screen.line(x1, y1, x2, y2, c, width)
   lcd.color(color(c))
-  x1, y1, x2, y2 = floor(x1), floor(y1), floor(x2), floor(y2)
+  x1, y1, x2, y2 = floor(x1 + ox), floor(y1 + oy), floor(x2 + ox), floor(y2 + oy)
   if not width or width <= 1 then
     lcd.drawLine(x1, y1, x2, y2)
     return
@@ -140,7 +149,7 @@ function screen.text(x, y, str, size, c, align, bold)
   local f, h = pickFont(size, bold)
   lcd.font(f)
   lcd.color(color(c))
-  lcd.drawText(floor(x), floor(y - h / 2), str, ALIGN[align or "left"])
+  lcd.drawText(floor(x + ox), floor(y + oy - h / 2), str, ALIGN[align or "left"])
 end
 
 -- Map tiles and other images by path, drawn at `size` square; twelve kept,
@@ -575,14 +584,28 @@ end
 -- In a test build each paint times one kind of draw call, in turn, so the
 -- slow ones show without wrapping every call, which paint's instruction limit
 -- would not allow.
+-- The unwrapped calls are kept and put back first: a paint the limit stops
+-- never reaches its own cleanup, and wrappers stacked frame on frame made
+-- every paint stop sooner (the X20 over ELRS, 2026-11-17).
 local KINDS = { "fill", "tri", "line", "text", "image" }
-local paints = 0
+local PLAIN = {}
+local paints, painting = 0, false
 
 local function paint(w)
   local start = os.clock()
+  -- A paint the limit stopped inside the HUD left its origin set.
+  screen.origin(0, 0)
   screen.frame()
   local kind, plain, calls, spent
   if link.capture then
+    if painting then
+      link.capture:line(start, "K", "stopped")
+    end
+    painting = true
+    for _, k in ipairs(KINDS) do
+      PLAIN[k] = PLAIN[k] or screen[k]
+      screen[k] = PLAIN[k]
+    end
     paints = paints + 1
     kind = KINDS[paints % #KINDS + 1]
     plain, calls, spent = screen[kind], 0, 0
@@ -609,6 +632,7 @@ local function paint(w)
   end
   if link.capture then
     screen[kind] = plain
+    painting = false
     link.capture:line(start, "K", string.format("%s %d %.1f", kind, calls, spent * 1000))
     link.capture:line(start, "U", string.format("%.1f", (os.clock() - start) * 1000))
     link.capture:timing(nil, os.clock() - start)

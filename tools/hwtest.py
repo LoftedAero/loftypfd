@@ -5,8 +5,9 @@
     .venv/Scripts/python tools/hwtest.py analyze out/hw/<session> [--capture FILE]
     .venv/Scripts/python tools/hwtest.py rehearse elrs|sport
 
-install puts a test build on the X20's SD card (tools/build.py --capture),
-which records everything the widget receives and sends (core/capture.lua).
+install puts a test build on the radio's SD card (tools/build.py --capture),
+which records everything the widget receives and sends (core/capture.lua):
+an X20 (Ethos) or an EdgeTX color radio such as the TX15.
 
 run drives a bench test through the flight controller's USB, recording its
 MAVLink: fake GPS where there is none, a hand-rocked roll to line up the
@@ -76,17 +77,22 @@ RC_STAR = 4096
 
 # --- The radio's SD card ----------------------------------------------------
 
+# Where Lofty PFD is on a card: Ethos, then EdgeTX.
+WIDGET_FOLDERS = ("scripts/loftypfd", "WIDGETS/LoftyPFD")
+
+
 def find_widget():
     """Lofty PFD's folder on a mounted radio, or None: the X20 in USB storage
     mode shows its flash and its SD card as drives, and scripts can be on
-    either."""
+    either; an EdgeTX radio shows its SD card."""
     for letter in string.ascii_uppercase[3:]:
-        folder = pathlib.Path("%s:/scripts/loftypfd" % letter)
-        try:
-            if (folder / "main.lua").exists():
-                return folder
-        except OSError:
-            continue
+        for sub in WIDGET_FOLDERS:
+            folder = pathlib.Path("%s:/%s" % (letter, sub))
+            try:
+                if (folder / "main.lua").exists():
+                    return folder
+            except OSError:
+                continue
     return None
 
 
@@ -95,7 +101,7 @@ def install(sd):
     if drive is None:
         widget = find_widget()
         if widget is None:
-            sys.exit("No radio with Lofty PFD found. Connect the X20 by USB and choose "
+            sys.exit("No radio with Lofty PFD found. Connect the radio by USB and choose "
                      "USB storage, or give --sd X: for a fresh card.")
         drive = widget.parent.parent
     subprocess.check_call([sys.executable, str(ROOT / "tools" / "build.py"), "--capture", "--sd", str(drive)])
@@ -310,7 +316,7 @@ def serial_port():
     autopilot, else the only one."""
     from pymavlink import mavutil
     ports = mavutil.auto_detect_serial(preferred_list=["*ArduPilot*", "*Holybro*", "*STM32*", "*CubePilot*",
-                                                        "*Kakute*", "*Matek*", "*TBS*", "*mRo*", "*PX4*"])
+                                                        "*LoftedAero*", "*Kakute*", "*Matek*", "*TBS*", "*mRo*", "*PX4*"])
     if len(ports) >= 1:
         return ports[0].device
     from serial.tools import list_ports
@@ -400,7 +406,7 @@ def run(args):
         ask("Safety and setup:\n"
             "  - Propellers OFF. The test arms the flight controller.\n"
             "  - Flight battery connected, so the receiver is powered and voltage can be checked.\n"
-            "  - X20 on, the Lofty PFD test build on screen, receiver bound, the status pill not\n"
+            "  - Radio on, the Lofty PFD test build on screen, receiver bound, the status pill not\n"
             "    'No telemetry'. Throttle stick down; leave the switches alone during the test.")
 
         # A GPS: the real one where it has a fix, else one from the PC.
@@ -443,7 +449,9 @@ def run(args):
                 reboot = True
             if reboot:
                 say("Rebooting the flight controller for the new settings")
+                at = time.time()
                 bench.reboot()
+                session.event("reboot", at, back=time.time())
                 reboot = False
             segment(bench, session, variant, want_rc, ask, yes, args.no_arm)
             session.save()
@@ -488,6 +496,10 @@ def segment(bench, session, variant, rc, ask, yes, no_arm):
     seg = {"name": variant, "start": time.time(), "rc_options": rc,
            "passthrough": variant != "crsf", "star": bool(rc & RC_STAR) or variant == "sport"}
     bench.wait(5)
+    g = bench.get("GPS_RAW_INT")
+    if bench.gps and not (g and g.fix_type >= 3):
+        say("  note: no fix from the fake GPS; this firmware may lack the MAVLink GPS driver "
+            "(GPS1_TYPE 14), so position goes unchecked")
     if not yes:
         ask("Rock the board: roll it left and right by about 30 degrees, a second each way,\n"
             "  and keep going until told to stop (this lines the radio's clock up with the PC's).")
@@ -554,8 +566,8 @@ def segment(bench, session, variant, rc, ask, yes, no_arm):
 def fetch_capture(folder, yes):
     if yes:
         return None
-    input("\nNow the radio's capture. Unplug the flight controller if you like. Connect the X20 by\n"
-          "USB and choose USB storage (SD card). Press Enter once its drives show in Explorer: ")
+    input("\nNow the radio's capture. Unplug the flight controller if you like. Connect the radio by\n"
+          "USB and choose USB storage (the SD card). Press Enter once its drives show in Explorer: ")
     for _ in range(30):
         widget = find_widget()
         if widget:
@@ -566,7 +578,8 @@ def fetch_capture(folder, yes):
             say("No capture on the radio in %s: was the test build installed (hwtest.py install)?" % widget)
             return None
         time.sleep(1)
-    say("No radio found. Copy the newest capture-N.txt from scripts/loftypfd yourself and run\n"
+    say("No radio found. Copy the newest capture-N.txt from scripts/loftypfd (Ethos) or\n"
+        "  WIDGETS/LoftyPFD (EdgeTX) yourself and run\n"
         "  hwtest.py analyze %s --capture FILE" % folder)
     return None
 
@@ -606,6 +619,13 @@ class Core:
             home.update(s)
           end""")
         self.crsf, self.passthrough, self.home = self.use("crsf"), self.use("passthrough"), self.use("home")
+        # EdgeTX's sensors as the capture recorded them (Y lines).
+        self._sensors = self.rt.eval("""function(sensors, home, reader, s, fields, now)
+            reader.apply(fields)
+            sensors.apply(s, reader.read, now)
+            home.update(s)
+          end""")
+        self.sensors, self.reader = self.use("sensors"), self.capture.sensorReader()
         self.table = self.rt.table_from
         self.parse = self.rt.eval("""function(devices, id, bytes)
             local d = {}
@@ -624,10 +644,13 @@ class Core:
     def apply(self, kind, a, b, now):
         self._apply(self.crsf, self.passthrough, self.home, self.state, kind, a, b, now)
 
+    def apply_sensors(self, fields, now):
+        self._sensors(self.sensors, self.home, self.reader, self.state, fields, now)
+
 
 def parse_capture(path):
     """(radio time, kind, fields) per line. Kind is "C" for a frame received,
-    "S", "P", "L", "D", "W" or "H"."""
+    "S", "P", "L", "D", "W", "G", "Y" (its fields as one text) or "H"."""
     out = []
     with open(path, encoding="utf-8", errors="replace") as f:
         for line in f:
@@ -646,8 +669,10 @@ def parse_capture(path):
                     out.append((t, "S", (int(parts[2]), int(parts[3]))))
                 elif kind == "P":
                     out.append((t, "P", (int(parts[2]), bytes.fromhex(parts[3] if len(parts) > 3 else ""))))
-                elif kind in ("L", "D", "W", "A"):
+                elif kind in ("L", "D", "W", "A", "G", "K"):
                     out.append((t, kind, parts[2:]))
+                elif kind == "Y":
+                    out.append((t, "Y", " ".join(parts[2:])))
                 elif kind == "H":
                     out.append((t, "H", line.split(None, 2)[2].strip()))
             except (ValueError, IndexError):
@@ -677,10 +702,12 @@ def decode(lines):
         if kind == "P":
             menus.sent(t, f[0], f[1])
             continue
-        if kind in ("C", "S"):
+        if kind in ("C", "S", "Y"):
             n0 = len(messages)
             if kind == "C":
                 core.apply("C", f[0], f[1], t)
+            elif kind == "Y":
+                core.apply_sensors(f, t)
             else:
                 core.apply("S", f[0], f[1], t)
             for m in messages[n0:]:
@@ -690,7 +717,8 @@ def decode(lines):
                     continue
                 checked[name] = value
                 capped = name == "sats" and s.passthrough and not core.vehicle.recent(s, "crsf.gps")
-                pending.append([name, value, t, kind == "S" and "S.Port" or "0x%02X" % f[0], capped])
+                label = {"S": "S.Port", "Y": "sensors"}.get(kind) or "0x%02X" % f[0]
+                pending.append([name, value, t, label, capped])
         elif kind == "D":
             d_checks[0] += 1
             mismatch = own_decoding(f, s, core.vehicle)
@@ -954,15 +982,16 @@ def analyze(folder, capture=None):
                 for n, v, t, label, c in pending if start <= t + offset <= end]
         # A reading that never changes in the segment is judged as the
         # radio already showed it, or it would go unjudged: when it arrived,
-        # where MAVLink reaches back that far, else as still true at the
-        # start.
+        # where MAVLink was recorded then, else as still true at the start
+        # (before the recording, or while the PC reconnected after a reboot).
         changing = {n for n, _, _, _, _ in here}
         held = {}
         for n, v, t, label, c in pending:
             if t + offset < start and n not in changing:
                 kind = table[n][0]
-                first = mav.times.get(kind, [None])[0]
-                at = t + offset if first is not None and t + offset - judge.BEFORE_S >= first else start
+                at = t + offset
+                if not mav.between(kind, at - judge.BEFORE_S, at + judge.AFTER_S):
+                    at = start
                 held[n] = (n, v, at, "held from radio %.2f s" % t, c)
         here = list(held.values()) + here
         slow = SLOW_OVER_SPORT if seg["name"] == "sport" else None
@@ -971,7 +1000,12 @@ def analyze(folder, capture=None):
         expect = {"roll", "pitch", "yaw", "mode"}
         if seg.get("star") or seg.get("passthrough"):
             expect.add("armed")
-        if gps:
+        # A fake GPS needs the MAVLink GPS driver, which some builds leave out
+        # (the gyro's): without a fix there is no position to compare.
+        fixed = any(m.fix_type >= 3 for m in mav.between("GPS_RAW_INT", start, end))
+        if gps and not fixed:
+            info("GPS: the flight controller had no fix")
+        if gps and fixed:
             expect |= {"lat", "lon", "sats"}
         if volts and max(volts) > 1000:
             expect.add("volts")
@@ -1001,12 +1035,18 @@ def analyze(folder, capture=None):
             return TELEMETRY_ONLY.match(t) or any(
                 tt.startswith(t) and len(t) >= min(len(tt.rstrip()), 40) for tt in sent)
         unknown = [(t, text) for t, text, _ in shown if not known(text)]
-        # One sent before the recording began, and slow to arrive, has nothing
-        # to be compared with.
-        early = [text for t, text in unknown if t - recorded_from < 120]
-        garbled = [text for t, text in unknown if t - recorded_from >= 120]
+        # One sent before the recording began, or while the PC reconnected
+        # after a reboot ("No RC Receiver" at startup), and slow to arrive, has
+        # nothing to be compared with.
+        heard = sorted(t for v in mav.by_type.values() for t, _ in v)
+        reboots = [(a, b) for a, b in zip(heard, heard[1:]) if b - a > 3]
+
+        def unseen(t):
+            return t - recorded_from < 120 or any(a <= t <= b + 120 for a, b in reboots)
+        early = [text for t, text in unknown if unseen(t)]
+        garbled = [text for t, text in unknown if not unseen(t)]
         if early:
-            info("not checked, perhaps sent before the recording began: " + "; ".join(early[:3]))
+            info("not checked, perhaps sent while MAVLink was not recorded: " + "; ".join(early[:3]))
         if seg.get("passthrough"):
             check("messages arrive", len(shown) > 0, "%d shown, %d sent" % (len(shown), len(texts)))
         else:
@@ -1061,15 +1101,31 @@ def analyze(folder, capture=None):
     gaps = [b - a for a, b in zip(inside, inside[1:])]
     check("the widget ran throughout", bool(inside) and inside[0] - first < 5 and last - inside[-1] < 5
           and (not gaps or max(gaps) < 3), "longest pause %.1f s" % max(gaps) if gaps else "no seconds")
-    timing = [f for _, k, f in lines if k == "W"]
+    timing = [f for _, k, f in lines if k == "W" and any(float(x) for x in f[:2])]
     if timing:
         wake = [float(x[0]) for x in timing]
         paint = [float(x[1]) for x in timing]
         mem = [float(x[2]) for x in timing]
         info("slowest wakeup %.0f ms (typical %.0f), slowest paint %.0f ms (typical %.0f), Lua memory to %.0f kB"
              % (max(wake), statistics.median(wake), max(paint), statistics.median(paint), max(mem)))
+    # A paint the instruction limit stopped leaves a frame half drawn; the
+    # next one says so (src/ethos, test build).
+    painted = [f for _, k, f in lines if k == "K"]
+    if painted:
+        stopped = sum(1 for f in painted if f[:1] == ["stopped"])
+        check("every paint finishes inside Ethos's instruction limit", not stopped,
+              "%d of %d stopped" % (stopped, len(painted)))
+    usage = [float(f[0]) for _, k, f in lines if k == "G" and f]
+    if usage:
+        check("the widget stays inside EdgeTX's instruction limit", max(usage) < 100,
+              "busiest refresh %.0f%% of the limit (typical %.0f%%)" % (max(usage), statistics.median(usage)))
 
-    if menus.devices or menus.requests:
+    if menus.devices and not menus.requests:
+        # Devices answer the widget's pings; nobody opened them (--yes).
+        out("== device menus")
+        info("not opened; answered: " + ", ".join(
+            "%s (0x%02X)" % (dev["name"], addr) for addr, dev in sorted(menus.devices.items())))
+    elif menus.devices or menus.requests:
         out("== device menus")
         for addr, dev in sorted(menus.devices.items()):
             loaded = len([k for k in dev["entries"] if k >= 1])   # entry 0 is the root
@@ -1108,16 +1164,90 @@ def finish(folder, report, results):
 
 # --- Rehearsal against SITL -------------------------------------------------
 
+# EdgeTX's sensors from the standard CRSF frames, as its firmware hands them
+# to Lua (core/sensors.lua): the frame decoded into a scratch state by the
+# core, then given back in EdgeTX's units. The flight mode is the frame's own
+# text, star included. Every other frame reaches Lua as a frame.
+EDGETX_SENSORS = """function(crsf, vehicle, scratch, values, fresh, ftype, d, now)
+  local R = math.pi / 180
+  local function put(name, v)
+    values[name] = v
+    fresh[name] = true
+  end
+  if ftype == 0x21 then
+    local text = {}
+    for i = 1, #d do
+      if d[i] == 0 then break end
+      text[#text + 1] = string.char(d[i])
+    end
+    put("FM", table.concat(text))
+    return true
+  end
+  if not (ftype == 0x1E or ftype == 0x02 or ftype == 0x07 or ftype == 0x08 or ftype == 0x09) then
+    return false
+  end
+  crsf.apply(scratch, ftype, d, now)
+  local s = scratch
+  if ftype == 0x1E then
+    put("Ptch", s.pitch * R)
+    put("Roll", s.roll * R)
+    put("Yaw", ((s.yaw + 180) % 360 - 180) * R)
+  elseif ftype == 0x02 then
+    put("GPS", { lat = s.lat or 0, lon = s.lon or 0 })
+    put("GSpd", (s.groundspeed or 0) * 3.6)
+    put("Hdg", s.course or 0)
+    put("GAlt", s.altMsl or 0)
+    put("Sats", s.sats or 0)
+  elseif ftype == 0x08 then
+    local b = s.battery[1]
+    put("RxBt", b.volts or 0)
+    put("Curr", b.amps or 0)
+    put("Capa", b.used or 0)
+    put("Bat%", b.pct or 0)
+  elseif ftype == 0x09 then
+    put("Alt", s.alt)
+    if s.climb then put("VSpd", s.climb) end
+  elseif ftype == 0x07 then
+    put("VSpd", s.climb)
+  end
+  return true
+end"""
+
+# One EdgeTX refresh's sensor reads, recorded as src/edgetx/main.lua does.
+EDGETX_READ = """function(sensors, home, cap, s, values, fresh, now)
+  sensors.apply(s, function(name)
+    local v = values[name]
+    if v == nil then return nil end
+    local f = fresh[name] or false
+    cap:sensor(name, v, true, f)
+    return v, true, f
+  end, now)
+  cap:sensorsDone(now)
+  for k in pairs(fresh) do fresh[k] = nil end
+  home.update(s)
+end"""
+
+
 class FakeRadio:
     """A radio on SITL's CRSF port, writing a capture as the test build does:
     its own clock, CRSF frames over ELRS, the passthrough words alone over
-    S.Port, and the device browser loading the gyro's menu with a write."""
+    S.Port, and the device browser loading the gyro's menu with a write.
+    `radio` "edgetx" is a TX15: the standard frames arrive as sensors."""
 
     CLOCK = 5000.0   # where the radio's clock stands at the start
 
-    def __init__(self, sitl, link, path):
-        self.sitl, self.link = sitl, link
+    def __init__(self, sitl, link, path, radio="ethos"):
+        self.sitl, self.link, self.radio = sitl, link, radio
         self.core = Core()
+        if radio == "edgetx":
+            rt = self.core.rt
+            self.scratch = self.core.vehicle.new()
+            self.values, self.fresh = rt.table(), rt.table()
+            self.to_sensors = rt.eval(EDGETX_SENSORS)
+            self.read_sensors = rt.eval(EDGETX_READ)
+            # ELRS's link statistics come from the receiver, which SITL has
+            # not: what the radio's sensor would read.
+            self.values["RQly"] = 99
         self.file = open(path, "w", encoding="utf-8", newline="\n")
         self.cap = self.core.capture.new(lambda text: self.file.write(text) or self.file.flush())
         self.t0 = time.time()
@@ -1131,7 +1261,7 @@ class FakeRadio:
             link_state.lq = 99
         else:
             link_state.rssi = 80
-        self.c("header", self.now(), "Rehearsal SITL")
+        self.c("header", self.now(), "Rehearsal SITL " + radio)
         threading.Thread(target=self._loop, daemon=True).start()
 
     def now(self):
@@ -1157,7 +1287,15 @@ class FakeRadio:
             now = self.now()
             for t, ftype, payload in self.sitl.crsf.take():
                 d = self.core.table(list(payload))
-                if self.link == "elrs":
+                if self.link == "elrs" and self.radio == "edgetx":
+                    if self.to_sensors(self.core.crsf, self.core.vehicle, self.scratch, self.values, self.fresh,
+                                       ftype, d, now):
+                        continue
+                    self.c("frame", now, ftype, d)
+                    if self.client and self.client.handle(self.client, ftype, d, now):
+                        continue
+                    self.core.apply("C", ftype, bytes(payload), now)
+                elif self.link == "elrs":
                     self.c("frame", now, ftype, d)
                     if self.client and self.client.handle(self.client, ftype, d, now):
                         continue
@@ -1166,6 +1304,10 @@ class FakeRadio:
                     for app, value in passthrough_words(payload):
                         self.c("sport", now, app, value)
                         self.core.apply("S", app, value, now)
+            if self.radio == "edgetx":
+                self.fresh["RQly"] = True
+                self.read_sensors(self.core.sensors, self.core.home, self.cap, self.core.state, self.values,
+                                  self.fresh, now)
             if self.client:
                 self.client.update(self.client, now)
                 dev = self.client.devices[0xC8]
@@ -1231,13 +1373,13 @@ def text_words(text, severity):
     return [(0x5000, w) for w in words]
 
 
-def rehearse(link):
+def rehearse(link, radio="ethos"):
     import sitl as S
     S.run_in_wsl(__file__)
     failed = 0
     variants = ["crsf", "crsf-passthrough"] if link == "elrs" else ["sport"]
     for variant in variants:
-        folder = OUT / ("rehearsal-" + variant)
+        folder = OUT / ("rehearsal-" + variant + ("-edgetx" if radio == "edgetx" else ""))
         if folder.exists():
             shutil.rmtree(folder)
         folder.mkdir(parents=True)
@@ -1248,7 +1390,7 @@ def rehearse(link):
         # driver's check of the ports is skipped.
         extra = "GPS1_TYPE 14\nSERIAL1_PROTOCOL 2\n"
         with S.Sitl(passthrough=variant != "crsf", extra=extra) as sitl:
-            radio = FakeRadio(sitl, link, folder / "capture.txt")
+            radio_sim = FakeRadio(sitl, link, folder / "capture.txt", radio)
             # Over passthrough a mode has no name until the frame type comes,
             # which SITL sends about half a minute in; on the bench the radio
             # has been listening longer.
@@ -1260,20 +1402,20 @@ def rehearse(link):
                 # The browser after the timed part, as on the bench: while a
                 # menu loads ArduPilot sends it ahead of telemetry.
                 if variant == "crsf":
-                    radio.browse()
+                    radio_sim.browse()
                     deadline = time.time() + 90
-                    while time.time() < deadline and not radio.written:
+                    while time.time() < deadline and not radio_sim.written:
                         time.sleep(0.5)
                     time.sleep(3)   # the write's read-back
                 else:
                     # The radio goes on listening while the pilot reaches
                     # for the cable; the slow link's last messages come then.
                     time.sleep(60)
-                radio.close()
+                radio_sim.close()
             try:
                 failed += run_with_capture(args, finish_radio)
             finally:
-                radio.running = False
+                radio_sim.running = False
     sys.exit(1 if failed else 0)
 
 
@@ -1312,6 +1454,8 @@ def main():
     a.add_argument("--capture")
     h = sub.add_parser("rehearse", help="the whole test against SITL")
     h.add_argument("link", choices=["elrs", "sport"])
+    h.add_argument("--radio", choices=["ethos", "edgetx"], default="ethos",
+                   help="the radio simulated: edgetx gets the standard frames as sensors")
     args = ap.parse_args()
     if args.cmd == "install":
         install(args.sd)
@@ -1322,7 +1466,9 @@ def main():
     elif args.cmd == "analyze":
         sys.exit(analyze(args.session, args.capture))
     else:
-        rehearse(args.link)
+        if args.radio == "edgetx" and args.link != "elrs":
+            sys.exit("An EdgeTX rehearsal is over ELRS only.")
+        rehearse(args.link, args.radio)
 
 
 if __name__ == "__main__":

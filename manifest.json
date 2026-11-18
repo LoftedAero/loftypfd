@@ -1,7 +1,7 @@
 {
  "format": 1,
  "name": "Lofty PFD",
- "version": "0.1.3",
+ "version": "0.1.4",
  "repository": "LoftedAero/loftypfd",
  "files": "https://raw.githubusercontent.com/LoftedAero/loftypfd/v{version}/{from}",
  "radios": {
@@ -20,8 +20,8 @@
     {
      "from": "src/edgetx/main.lua",
      "to": "WIDGETS/LoftyPFD/main.lua",
-     "size": 7188,
-     "sha256": "9ca0f9fbe91889074c46b6cf0eece22586e44d1b2cb43e8c7a04da2b3089478d"
+     "size": 9928,
+     "sha256": "d3c841b2d040aa278b1218ce366f9ff1b2e44055dac309cf479b6e7113288dd2"
     },
     {
      "from": "src/edgetx/screen.lua",
@@ -50,8 +50,8 @@
     {
      "from": "src/core/capture.lua",
      "to": "WIDGETS/LoftyPFD/core/capture.lua",
-     "size": 4645,
-     "sha256": "36210ec4be445d6a1c20d71d6aa454fbe192b83f5e3bc80a4c3ceb8aa112199a"
+     "size": 8137,
+     "sha256": "d44a4a46666914947aa25838067ba28a1a9f2dc7a2623a7ebf7c437a2c4cbe38"
     },
     {
      "from": "src/core/crsf.lua",
@@ -700,8 +700,8 @@
     {
      "from": "src/ethos/main.lua",
      "to": "scripts/loftypfd/main.lua",
-     "size": 20808,
-     "sha256": "5fca1c241694f4bdb4ed6c8ff1ef73cc5caf54926f26e0be13725ad220b7d15a"
+     "size": 21732,
+     "sha256": "d7d0cc8821262611d5ccff7cb7bec65241afef130002730a2657e8ca335a9c93"
     },
     {
      "from": "src/ethos/icon.png",
@@ -724,8 +724,8 @@
     {
      "from": "src/core/capture.lua",
      "to": "scripts/loftypfd/core/capture.lua",
-     "size": 4645,
-     "sha256": "36210ec4be445d6a1c20d71d6aa454fbe192b83f5e3bc80a4c3ceb8aa112199a"
+     "size": 8137,
+     "sha256": "d44a4a46666914947aa25838067ba28a1a9f2dc7a2623a7ebf7c437a2c4cbe38"
     },
     {
      "from": "src/core/crsf.lua",

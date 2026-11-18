@@ -1,8 +1,8 @@
-# Hardware test: the X20
+# Hardware test: the X20 and the TX15
 
-Lofty PFD on a real FrSky X20, checked against a real flight controller. Two bench
-sessions: ELRS on the Kakute F4 Wing gyro, then S.Port on a stock ArduPlane board. Props
-off throughout. The TX15 (EdgeTX) follows when it arrives.
+Lofty PFD on a real radio, checked against a real flight controller. Three bench sessions:
+the X20 over ELRS on the LoftedAero-SRX gyro, the X20 over S.Port on a stock ArduPlane
+board, and the TX15 (EdgeTX) over ELRS on the SRX. Props off throughout.
 
 Most of it is automated. A test build of the widget records everything it receives and
 sends to the radio's SD card. Meanwhile `tools/hwtest.py` drives the flight controller over
@@ -13,15 +13,16 @@ off the radio. What only eyes can judge is in the checklist at the end.
 
 ## What you need
 
-- X20 with Ethos 1.6 or later, charged.
-- **ELRS session:** an ExpressLRS 3.x module in the X20's module bay, and an ELRS receiver
-  bound to it, on the Kakute F4 Wing gyro's RC port (SERIAL3).
+- X20 with Ethos 1.6 or later, charged; for session 3, a TX15 with EdgeTX 2.11 or later and
+  its ELRS module.
+- **ELRS session:** an ExpressLRS 3.x module in the X20's module bay, and a LoftedAero-SRX
+  bound to it. The SRX's ELRS receiver is on the board, so there is nothing to wire.
 - **S.Port session:** a FrSky ACCESS receiver with an S.Port pin (Archer R4, R6 or R8, RS,
   R-XSR and similar), bound to the X20's internal module, on a flight controller running stock
   ArduPlane 4.5 or later.
 - A flight battery for each board, so the receiver is powered and battery voltage can be
   checked. **Props off.**
-- USB cables for the flight controller and the X20.
+- USB cables for the flight controller and the radio.
 - The PC with this repository and its venv. `pyserial` is new, so install the requirements
   again:
 
@@ -55,16 +56,18 @@ The test build behaves like the normal one. It also writes a new
 `scripts/loftypfd/capture-<n>.txt` each time the widget starts, about 2 kB a second while
 telemetry flows.
 
-## Session 1: ELRS on the Kakute F4 Wing gyro
+## Session 1: ELRS on the LoftedAero-SRX gyro
 
 **Set up**
 
-1. Gyro firmware flashed, with its defaults: `SERIAL3_PROTOCOL 23`, `RC_OPTIONS 4192`.
-2. In Ethos, set the model's external module to CRSF, with the ELRS module in the bay. Check
-   that the receiver is bound and the ELRS telemetry ratio isn't Off.
-3. In Ethos, go to Telemetry → **Discover new sensors** with the receiver powered, so the link
+1. Gyro firmware of 2026-11-14b or later (menu version 3) flashed, with its defaults: the
+   receiver on SERIAL2 (`SERIAL2_PROTOCOL 23`, from the board), `RC_OPTIONS 12640`, which
+   includes passthrough (bit 8) and the receiver's 420 kbaud link (bit 13).
+2. In Ethos, set the model's external module to CRSF, with the ELRS module in the bay. Bind
+   the SRX to it, and check that the ELRS telemetry ratio isn't Off.
+3. In Ethos, go to Telemetry → **Discover new sensors** with the SRX powered, so the link
    sensors (link quality, RSSI) exist.
-4. Battery on the Kakute, props off. Connect the Kakute to the PC by USB.
+4. Battery on the SRX, props off. Connect the SRX to the PC by USB.
 5. On the X20, the Lofty PFD screen should show the flight mode and a status pill that no
    longer says "No telemetry".
 
@@ -82,13 +85,16 @@ The run finds the flight controller's COM port by itself; if it can't, give it w
    carries the armed state.
 2. **Sets up a GPS.** Indoors there's no fix, so it offers a simulated GPS from the PC. It
    sets GPS1_TYPE to 14 (MAVLink), reboots, and feeds positions at the SITL field. Say yes
-   unless the board has a real fix.
+   unless the board has a real fix. The gyro firmware leaves out the MAVLink GPS driver, so
+   on the SRX this gives no fix; position then goes unchecked, and a real GPS is needed.
 3. **Plain CRSF segment:**
    - It asks you to **rock the board** left and right about 30° until it says stop. Rocking
      lines up the radio's clock with the PC's.
    - It cycles FBWA, ACRO and MANUAL, 7 s each.
    - It arms for 8 s and disarms. Arming is forced, so it first checks the throttle is down.
    - It asks ArduPilot to send its banner messages.
+   On the SRX, whose defaults send passthrough, it first turns RC_OPTIONS bit 8 off and
+   reboots.
 4. **Passthrough segment:** it sets RC_OPTIONS bit 8 (passthrough over CRSF), reboots, and
    repeats step 3, rocking included.
 5. **Device browser:** follow the prompt.
@@ -131,6 +137,43 @@ You can press Ctrl+C at any point; the parameters are still put back.
 The steps are the same as for ELRS, with one segment and no device browser. S.Port sends
 the mode and armed state every 3 to 5 seconds, so the analysis allows for that delay.
 
+## Session 3: the TX15 over ELRS on the LoftedAero-SRX
+
+The same test as session 1, with the TX15 in place of the X20. EdgeTX gives Lua the standard
+CRSF frames as telemetry sensors, so the test build records the sensors' values.
+
+**Once: put the test build on the TX15**
+
+1. Connect the TX15 by USB and choose **USB Storage (SD)**.
+2. Run `.venv/Scripts/python tools/hwtest.py install`. It finds `WIDGETS/LoftyPFD` on the
+   card. On a card without Lofty PFD yet, name the drive: `install --sd E:`.
+3. Unplug. Give a model a screen with the full-screen layout and the Lofty PFD widget.
+4. In the widget's settings, set Voice callouts to All, and turn the radio's volume up.
+
+The test build writes a new `WIDGETS/LoftyPFD/capture-<n>.txt` each time the widget starts.
+
+**Set up**
+
+1. The SRX as in session 1: firmware of 2026-11-14b or later, with its defaults.
+2. On the TX15, bind the SRX to its ELRS module, and check that the telemetry ratio isn't Off.
+3. Go to Telemetry → **Discover new sensors** with the SRX powered. Lofty PFD finds the
+   sensors by what they carry, so their names don't matter.
+4. Battery on the SRX, props off. Connect the SRX to the PC by USB.
+5. Put the widget in full screen: EdgeTX gives a widget the keys and touches only there.
+
+**Run**
+
+```
+.venv/Scripts/python tools/hwtest.py run elrs
+```
+
+The steps are those of session 1. For the device browser, tap the sliders button, which
+shows only in full screen. At the end, connect the TX15 by USB and choose USB Storage (SD)
+to give the run its capture.
+
+The report has one more line: **the widget stays inside EdgeTX's instruction limit**, from
+the busiest refresh of each second. EdgeTX stops a widget that reaches 100%.
+
 ## Reading the result
 
 Each run leaves a folder `out/hw/<date>-<time>-<link>/`:
@@ -151,8 +194,8 @@ can be one of these checks:
 - **Messages:** messages arrive, and each one shown is a message ArduPilot sent. Plain CRSF
   carries no text, so that line only reports a count.
 - **Link sensors:** the link quality (ELRS) or RSSI (S.Port), and the transmitter's battery.
-- **The radio's own decoding:** what the X20 decoded matches the core run on the PC. This
-  catches any difference between Ethos's Lua and the PC's.
+- **The radio's own decoding:** what the radio decoded matches the core run on the PC. This
+  catches any difference between the radio's Lua and the PC's.
 - **The widget kept running:** no pause longer than 3 s. Also reported: its slowest wakeup
   and paint times, and its memory use.
 - **Device menus:** every device's entries loaded and parsed, and the setting you changed was
@@ -211,7 +254,8 @@ that looks wrong, along with the time.
 - **Settings:** long-press the widget, then Configure widget.
   - Change the units: altitude in feet, speed in knots.
   - Set Theme to Light, then Dark, and check both look right.
-- **System tool:** System menu, page 2, Lofty PFD. It opens the device browser on its own.
+- **System tool:** on the X20, System menu, page 2, Lofty PFD; on the TX15, the Tools menu.
+  It opens the device browser on its own.
 - **Link loss:** switch the receiver off. Within 3 s the pill says "Link lost" and the
   readings hold. Switch it back on, and it recovers.
 
@@ -237,10 +281,12 @@ flag file and keeps the maps:
 .venv/Scripts/python tools/build.py --sd E:
 ```
 
-Delete the `capture-*.txt` files from `scripts/loftypfd` once they're copied off.
+Delete the `capture-*.txt` files from `scripts/loftypfd` (X20) or `WIDGETS/LoftyPFD` (TX15)
+once they're copied off.
 
 ## Without hardware
 
 `hwtest.py rehearse elrs` and `rehearse sport` run the whole thing against the gyro's SITL in
-WSL. A simulated radio writes the capture, and nothing is asked. That checks the tooling, but
-not the X20.
+WSL. A simulated radio writes the capture, and nothing is asked. `rehearse elrs --radio
+edgetx` simulates the TX15, with the standard frames as sensors. That checks the tooling, but
+not the radios.

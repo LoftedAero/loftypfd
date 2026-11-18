@@ -121,6 +121,9 @@ is no other specification.
   same setters as the frames (`crsf.set`), so both mean the same thing. `getSourceValue`
   says whether a sensor is current and whether it is fresh; a held value is shown, but only
   a fresh one counts as telemetry arriving, so a dropped link shows as lost.
+- **EdgeTX's attitude is in steps of 0.01 rad** (0.57 degrees): the sensors keep two
+  decimals (TX15, EdgeTX 3.0.0). Over plain CRSF the horizon moves in those steps;
+  passthrough's roll and pitch, which outrank them, are finer.
 - **Sensors are found by where EdgeTX keeps them,** not by name: the CRSF frame type
   (`model.getSensor`'s `id`) and the place in it (`instance`), which no version has changed.
   EdgeTX 2.11 named the GPS and the baro altitude both "Alt" (2.12 calls the GPS one
@@ -292,6 +295,11 @@ the cost of Ethos counting them.
   catching up: a simulator starved of CPU stopped the widget with "CPU limit".
 - **A `pcall` does not catch the limit in Ethos's `wakeup`:** the callback ends. Measure
   headroom there by padding with a fixed loop, not by burning until the error.
+- **A paint the limit stops is half drawn,** with no error shown: on the X20 the widget's
+  undrawn area showed bright green. Its cleanup never runs, so the test build puts its
+  timing wrapper's plain calls back at the start of each paint and records a stopped one
+  (`K stopped`); wrappers left in place stacked until every paint stopped after the
+  horizon (the X20 over ELRS, 2026-11-17, with the four-line log full).
 - **The rendering convention is pinned by a test:** in a right bank the horizon's right end
   is higher and the bank pointer swings left.
 
@@ -640,11 +648,22 @@ committed, since what goes on a radio is the source files, placed per radio.
   a link. That is how both simulators show a real flight. A capture from a radio plays the
   same way, S.Port words included.
 - **The hardware test** (`docs/hardware-test.md`, `tools/hwtest.py`). A test build
-  (`tools/build.py --capture`, Ethos only so far) records everything the widget receives
+  (`tools/build.py --capture`, both radios) records everything the widget receives
   and sends (`core/capture.lua`): frames in replay's form, S.Port words, its own decoding,
   the link sensors and its timing, appended a second at a time so a switched-off radio
   loses nothing. The PC drives the flight controller over USB, records its MAVLink, then
   decodes the capture with the same core and judges it as the SITL test does.
+  - **On EdgeTX the standard frames are sensors** (see "EdgeTX's sensors"), so the capture
+    records what each sensor read returned, value and flags, as `Y` lines of those that
+    changed, and the analysis plays them through `core/sensors.lua`. A recorded call does
+    the same as a skipped one when nothing in it is fresh: the setters stamp the time of
+    the last fresh value. `G` lines carry the busiest refresh of each second
+    (`getUsage()`), and the analysis fails at 100%.
+  - **The capture costs EdgeTX about 1,100 instructions a refresh** (counted offline on
+    Lua 5.3: the worst refresh with 8 passthrough frames went from 82% to 90% of the
+    limit). Frames are written as hex in one `string.format` call; byte by byte cost 1,000
+    more in such a refresh. EdgeTX counts instructions, not time, so reusing tables in
+    place of new ones cost more, not less.
   - **The two clocks** are lined up by the changes of mode and arming both sides saw, the
     offset that explains the most of them, then exactly by the roll while the board was
     rocked by hand. A reading that never changes during a segment is judged as the radio
@@ -653,7 +672,9 @@ committed, since what goes on a radio is the source files, placed per radio.
     against the 6 s before their arrival.
   - **Voice:** the capture records each callout played, and every mode change, arming and
     disarming the test made must be said within the time the link takes to carry it.
-  - `hwtest.py rehearse` runs it all against SITL, a simulated radio writing the capture.
+  - `hwtest.py rehearse` runs it all against SITL, a simulated radio writing the capture;
+    `--radio edgetx` gives it the standard frames as EdgeTX's sensors, decoded by the core
+    and given back in EdgeTX's units, so it checks the capture's path, not EdgeTX.
     S.Port's words there come from passthrough over CRSF, since a FrSky port would stop them;
     once a GCS is connected SITL sends text only as whole messages (0xF1), which the
     simulated radio turns into text words, as S.Port carries it.

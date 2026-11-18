@@ -11,8 +11,8 @@ firmware.
   receiver, flight controller). A guided setup for the gyro is planned.
 
 Status: **preview.** It runs in the Ethos and EdgeTX simulators against recorded ArduPilot
-SITL flights and the gyro's SITL menu, and on one X20 on the bench over S.Port. ExpressLRS and
-EdgeTX haven't been tried on a real radio yet.
+SITL flights and the gyro's SITL menu, and on the bench on one X20 over S.Port and ExpressLRS
+and one TX15 (EdgeTX 3.0) over ExpressLRS. It hasn't flown yet.
 
 ## Installing
 

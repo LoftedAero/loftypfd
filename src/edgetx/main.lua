@@ -33,6 +33,7 @@ local tiles = use("tiles")
 local devices = use("devices")
 local menu = use("menu")
 local callouts = use("callouts")
+local capture = use("capture")
 
 local screen = assert(loadScript(DIR .. "screen.lua"))(use, DIR)
 local edgetx = assert(loadScript(DIR .. "link.lua"))(use, DIR)
@@ -44,6 +45,48 @@ local function seconds()
   return getTime() / 100
 end
 
+-- A test build (tools/build.py --capture) records the link to the next free
+-- capture-<n>.txt in the widget's folder, for tools/hwtest.py. Each second's
+-- lines are appended and the file closed again, so nothing is lost when the
+-- radio is switched off. One widget records: each decodes its own share of
+-- the queue, so a second would record what the first missed.
+local recorder, recorderSeen = nil, 0
+
+local function startCapture()
+  local f = io.open(DIR .. "capture.on", "r")
+  if not f then
+    return nil
+  end
+  io.close(f)
+  local name
+  for n = 1, 999 do
+    name = DIR .. "capture-" .. n .. ".txt"
+    local old = io.open(name, "r")
+    if not old then
+      break
+    end
+    io.close(old)
+  end
+  local c = capture.new(function(text)
+    local out = io.open(name, "a")
+    if out then
+      io.write(out, text)
+      io.close(out)
+    end
+  end)
+  local about = { "EdgeTX" }
+  if getVersion then
+    local version, radio = getVersion()
+    about[#about + 1] = tostring(radio)
+    about[#about + 1] = tostring(version)
+  end
+  about[#about + 1] = _VERSION
+  c:header(seconds(), table.concat(about, " "))
+  return c
+end
+
+local captureOn = nil
+
 -- The settings from the widget's options, resolved when they change rather
 -- than every frame.
 local function settingsOf(values)
@@ -54,6 +97,9 @@ end
 
 local function create(zone, values)
   link = link or edgetx.open()
+  if captureOn == nil then
+    captureOn = startCapture() or false
+  end
   local w = { zone = zone, settings = settingsOf(values), state = vehicle.new(), tx = {} }
   -- Map tiles copied by Lofty GCS, in the widget's maps folder.
   w.flight = flight.new({ layers = maps.parseIndex(edgetx.readAll(DIR .. "maps/index.txt")), root = DIR .. "maps/" })
@@ -131,6 +177,9 @@ local function speak(w, now)
   w.callouts = w.callouts or callouts.new()
   for _, item in ipairs(w.callouts:update(w.state, now, w.settings.voice, w.settings.beepsDisarmed)) do
     edgetx.play(item)
+    if w.capture then
+      w.capture:callout(now, item)
+    end
   end
 end
 
@@ -141,6 +190,19 @@ local FRAMES_PER_CALL = 8
 local function decode(w)
   local now = seconds()
   local s = w.state
+  -- The recording widget, as the speaker is chosen.
+  if captureOn then
+    if recorder ~= w and now - recorderSeen >= 2 then
+      recorder = w
+    end
+    if recorder == w then
+      recorderSeen = now
+      w.capture = captureOn
+    else
+      w.capture = nil
+    end
+  end
+  local cap = w.capture
   -- CRSF frames Lua does see: ArduPilot's passthrough, its status text and
   -- the device menu, which goes to the browser. The standard frames come as
   -- sensors, below.
@@ -148,6 +210,9 @@ local function decode(w)
     local command, data = link.pop()
     if not command then
       break
+    end
+    if cap then
+      cap:frame(now, command, data)
     end
     if not (w.client and w.client:handle(command, data, now)) and not w.player then
       crsf.apply(s, command, data, now)
@@ -166,11 +231,25 @@ local function decode(w)
         break
       end
       if primId == 0x10 then
+        if cap then
+          cap:sport(now, appId, value)
+        end
         passthrough.apply(s, appId, value, now)
       end
     end
     finder:step(now)
-    sensors.apply(s, readSensor, now)
+    if cap then
+      -- What each sensor read returned, for the capture to replay.
+      w.recordRead = w.recordRead or function(name)
+        local v, current, fresh = readSensor(name)
+        w.capture:sensor(name, v, current, fresh)
+        return v, current, fresh
+      end
+      sensors.apply(s, w.recordRead, now)
+      cap:sensorsDone(now)
+    else
+      sensors.apply(s, readSensor, now)
+    end
   end
   home.update(s)
   stats.update(s, now)
@@ -187,9 +266,25 @@ end
 -- its top page.
 local function openBrowser(w)
   w.client = w.client or devices.new(function(frameType, payload)
-    return link.push(frameType, payload)
+    local ok = link.push(frameType, payload)
+    if ok ~= false and w.capture then
+      w.capture:sent(seconds(), frameType, payload)
+    end
+    return ok
   end)
   w.app = menu.new(w.client)
+end
+
+-- The busiest refresh of each second, as EdgeTX's share of its limit.
+local usagePeak, usageAt = 0, nil
+
+local function usage(c, now, percent)
+  usagePeak = math.max(usagePeak, percent or 0)
+  usageAt = usageAt or now
+  if now - usageAt >= 1 then
+    c:line(now, "G", tostring(usagePeak))
+    usagePeak, usageAt = 0, now
+  end
 end
 
 -- EdgeTX passes events only in full screen, the one mode in which the
@@ -197,6 +292,9 @@ end
 local function refresh(w, event, touch)
   decode(w)
   local now = seconds()
+  if w.capture then
+    w.capture:update(now, w.state, getValue("tx-voltage"))
+  end
   local set = w.settings
   palette.set(palette.pick(set.theme, edgetx.radioDark()))
   screen.size(w.zone.w, w.zone.h)
@@ -222,6 +320,9 @@ local function refresh(w, event, touch)
     timers = tiles.shows(set.tiles, "timers") and timers() or nil,
     settings = event ~= nil and set.devicesButton,
   })
+  if w.capture and getUsage then
+    usage(w.capture, now, getUsage())
+  end
 end
 
 return {

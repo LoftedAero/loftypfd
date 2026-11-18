@@ -19,9 +19,9 @@ early builds shared for feedback, and have yet to be fully validated in the real
 - **A link:** ExpressLRS or Crossfire, or a FrSky receiver with S.Port or F.Port.
 - **ArduPilot** sending telemetry on that link (see "Setting up ArduPilot" below).
 
-So far Lofty PFD has run on one X20 on the bench, over S.Port, and in the Ethos and EdgeTX
-simulators against ArduPilot's simulator. ExpressLRS and EdgeTX haven't been tried on a real
-radio yet.
+So far Lofty PFD has run on the bench on one X20 over S.Port and ExpressLRS and one TX15
+(EdgeTX 3.0) over ExpressLRS, and in the Ethos and EdgeTX simulators against ArduPilot's
+simulator. It hasn't flown yet.
 
 ## Installing
 
