@@ -3,7 +3,7 @@
     .venv/Scripts/python tests/sitl_test.py
 
 Needs the gyro SITL build in WSL (~/ardupilot-gyro/build/sitl/bin/arduplane,
-built with --extra-hwdef=Tools/gyro/sitl-gyro.hwdef) and nothing else on
+built with --extra-hwdef=Tools/stabrx/sitl-stabrx.hwdef) and nothing else on
 ports 5760 and 5765. Two runs, about two minutes each:
 
 1. Plain CRSF, as the gyro's defaults send it. The device menu's top level
@@ -96,11 +96,23 @@ def device_menu(sitl, radio):
           "%d of %d in %.1f s" % (loaded, total, (loaded_at or time.time()) - started))
     everything, count = radio.call("progress", FC)
     check("and nothing else", everything == total, "%d of %d entries read" % (everything, count))
-    check("telemetry stops for less than 9 s", longest < 9, "attitude stopped for %.1f s" % longest)
+    check("telemetry stops for less than 2 s", longest < 2, "attitude stopped for %.1f s" % longest)
     top = radio.call("children", FC, 0)
     names = [top[i]["name"] for i in range(1, len(top) + 1)]
-    check("top level is the gyro's", names == ["Status", "1 Calibration", "2 Radio", "3 Flight modes",
+    check("top level is the gyro's", names == ["Status", "1 Sensors", "2 Radio", "3 Flight modes",
                                                "4 Outputs", "5 Failsafe", "6 Tuning", "Tools"], names)
+
+    sensors = find(sitl, radio, "1 Sensors")
+    opened(sitl, radio, sensors["id"])
+    kids = radio.call("children", FC, sensors["id"])
+    names = [kids[i]["name"] for i in range(1, len(kids) + 1)]
+    check("1 Sensors holds the calibrations and the GPS switch",
+          names == ["Orientation", "Detect orientation", "Calibrate accel", "Calibrate level", "GPS"], names)
+    gps = kids[len(kids)] if len(kids) else None
+    fitted = 1 if sitl.mav.param("GPS1_TYPE") else 0
+    check("GPS is Off or On, as GPS1_TYPE says", gps is not None and gps["options"][1] == "Off"
+          and gps["options"][2] == "On" and gps["value"] == fitted,
+          "%s, GPS1_TYPE %s" % (gps and gps["value"], sitl.mav.param("GPS1_TYPE")))
 
     link_loss = find(sitl, radio, "5 Failsafe", "Link loss")
     before = sitl.mav.param("FS_LONG_ACTN")
@@ -149,7 +161,7 @@ def device_menu(sitl, radio):
     opened(sitl, radio, tools["id"])
     version = next((e for e in client.devices[FC]["entries"].values() if e["name"] == "Menu version"), None)
     check("Tools holds the hidden menu version", version is not None and version["hidden"]
-          and version["parent"] == tools["id"] and version["value"] == "3", version and version["value"])
+          and version["parent"] == tools["id"] and version["value"] == "4", version and version["value"])
 
     cmd = find(sitl, radio, "3 Flight modes", "Check mode switch")
     radio.call("command", FC, cmd["id"], 1)

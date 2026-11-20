@@ -128,6 +128,15 @@ T.case("messages: clips where there are, tones by severity, repeats quiet", func
   T.eq(say("GPS Glitch", 2, 69), "gps-glitch=gps-glitch", "GPS glitch")
   T.eq(say("RollD: 0.0123", 3, 70), "", "Plane's autotune gains are progress")
   T.eq(say("Roll: Finished", 3, 71), "autotune=tune-roll-done", "Plane's autotune, per axis")
+  T.eq(say("Started autotune", 6, 76), "autotune=autotune-started", "Plane's autotune switch")
+  T.eq(say("Autotuning roll pitch yaw", 6, 77), "", "the axes it tunes are quiet")
+  T.eq(say("YawP: 0.0410", 3, 78), "", "yaw's gains are progress too")
+  T.eq(say("Yaw: Finished", 3, 79), "autotune=tune-yaw-done", "yaw finishes")
+  T.eq(say("StabRX: yaw damper 0.050", 6, 80), "", "the damper it set is information")
+  T.eq(say("Stopped autotune", 6, 81), "", "stopping is the pilot's own switch")
+  s.modeNumber = 8
+  run(w, s, 82, 1)
+  T.eq(say("Started autotune", 6, 90), "", "in AUTOTUNE mode the mode's callout said it")
   T.eq(say("AutoTune: Success", 6, 72), "autotune=autotune-success", "Copter's autotune")
   T.eq(say("Transition done", 6, 73), "transition=transition-done", "a transition")
   T.eq(say("Crash detected", 0, 74), "sev-crit=crash", "a crash")
@@ -223,7 +232,7 @@ T.case("every clip has a name EdgeTX can play and words", function()
   for _, name in ipairs({ "armed", "disarmed", "battery", "battery-low", "battery-critical", "battery-failsafe",
     "gps-fix", "gps-lost", "gps-glitch", "failsafe", "failsafe-radio", "failsafe-gcs", "failsafe-throttle",
     "failsafe-cleared", "fence-breached", "mission-complete", "transition-done", "transition-failed",
-    "autotune-success", "autotune-failed", "tune-roll-done", "tune-pitch-done", "tune-yaw-done", "crash",
+    "autotune-started", "autotune-success", "autotune-failed", "tune-roll-done", "tune-pitch-done", "tune-yaw-done", "crash",
     "hard-landing", "bad-gps-health" }) do
     T.ok(all[name], name .. " has a clip")
   end

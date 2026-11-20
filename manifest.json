@@ -1,7 +1,7 @@
 {
  "format": 1,
  "name": "Lofty PFD",
- "version": "0.1.4",
+ "version": "0.1.5",
  "repository": "LoftedAero/loftypfd",
  "files": "https://raw.githubusercontent.com/LoftedAero/loftypfd/v{version}/{from}",
  "radios": {
@@ -44,8 +44,8 @@
     {
      "from": "src/core/callouts.lua",
      "to": "WIDGETS/LoftyPFD/core/callouts.lua",
-     "size": 13052,
-     "sha256": "bcba452569327bf4f2f4e680b33805b2d080679b14c8f099a9edb807cea29241"
+     "size": 13400,
+     "sha256": "51a212cab139cd1a8cd6673e6c93c26283e42b97038a9c8c25b06e356ef180ed"
     },
     {
      "from": "src/core/capture.lua",
@@ -146,8 +146,8 @@
     {
      "from": "src/core/phrases.lua",
      "to": "WIDGETS/LoftyPFD/core/phrases.lua",
-     "size": 3348,
-     "sha256": "b45c8d5d705347aad74644346da6fc21a3236d0abf6316e1a7a5f05461da1add"
+     "size": 3393,
+     "sha256": "fefe6ecb0503046b41f604be64f077b5682ddef77cd077a852bb920ba4c19195"
     },
     {
      "from": "src/core/replay.lua",
@@ -208,6 +208,12 @@
      "to": "SOUNDS/en/lofty/autotune-failed.wav",
      "size": 38406,
      "sha256": "24ba732543550718edf56da91e41f73e6b9ff83a66fec74925bac4111fb03fe4"
+    },
+    {
+     "from": "src/audio/en/autotune-started.wav",
+     "to": "SOUNDS/en/lofty/autotune-started.wav",
+     "size": 38728,
+     "sha256": "738fb1ff2e0af10024d2bbc45b059c1f94e19278b8f670f9a1e9526d1233898e"
     },
     {
      "from": "src/audio/en/autotune-success.wav",
@@ -434,8 +440,8 @@
     {
      "from": "src/audio/en/mode-fbwa.wav",
      "to": "SOUNDS/en/lofty/mode-fbwa.wav",
-     "size": 41750,
-     "sha256": "91b760e3af2a6898f9c191a1e6b8668dd94284758405b34fca7a62da5fd26992"
+     "size": 48706,
+     "sha256": "ccabb7c66f616d52df39ec76836df5b57e725914caff67376867db073b9b2902"
     },
     {
      "from": "src/audio/en/mode-fbwb.wav",
@@ -718,8 +724,8 @@
     {
      "from": "src/core/callouts.lua",
      "to": "scripts/loftypfd/core/callouts.lua",
-     "size": 13052,
-     "sha256": "bcba452569327bf4f2f4e680b33805b2d080679b14c8f099a9edb807cea29241"
+     "size": 13400,
+     "sha256": "51a212cab139cd1a8cd6673e6c93c26283e42b97038a9c8c25b06e356ef180ed"
     },
     {
      "from": "src/core/capture.lua",
@@ -820,8 +826,8 @@
     {
      "from": "src/core/phrases.lua",
      "to": "scripts/loftypfd/core/phrases.lua",
-     "size": 3348,
-     "sha256": "b45c8d5d705347aad74644346da6fc21a3236d0abf6316e1a7a5f05461da1add"
+     "size": 3393,
+     "sha256": "fefe6ecb0503046b41f604be64f077b5682ddef77cd077a852bb920ba4c19195"
     },
     {
      "from": "src/core/replay.lua",
@@ -882,6 +888,12 @@
      "to": "scripts/loftypfd/audio/en/autotune-failed.wav",
      "size": 38406,
      "sha256": "24ba732543550718edf56da91e41f73e6b9ff83a66fec74925bac4111fb03fe4"
+    },
+    {
+     "from": "src/audio/en/autotune-started.wav",
+     "to": "scripts/loftypfd/audio/en/autotune-started.wav",
+     "size": 38728,
+     "sha256": "738fb1ff2e0af10024d2bbc45b059c1f94e19278b8f670f9a1e9526d1233898e"
     },
     {
      "from": "src/audio/en/autotune-success.wav",
@@ -1108,8 +1120,8 @@
     {
      "from": "src/audio/en/mode-fbwa.wav",
      "to": "scripts/loftypfd/audio/en/mode-fbwa.wav",
-     "size": 41750,
-     "sha256": "91b760e3af2a6898f9c191a1e6b8668dd94284758405b34fca7a62da5fd26992"
+     "size": 48706,
+     "sha256": "ccabb7c66f616d52df39ec76836df5b57e725914caff67376867db073b9b2902"
     },
     {
      "from": "src/audio/en/mode-fbwb.wav",

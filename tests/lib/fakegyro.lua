@@ -1,4 +1,4 @@
--- A fake device that answers as the gyro's menu does (ArduPlane/gyro_menu.cpp
+-- A fake device that answers as the gyro's menu does (ArduPlane/stabrx_menu.cpp
 -- in ardupilot-gyro, AP_CRSF_Telem.cpp), for the device client and the
 -- browser.
 
@@ -142,8 +142,13 @@ local function fakeDevice(opts)
     return true
   end
   -- Answers everything sent since the last call; returns the replies.
+  -- While `dev.down`, restarting, it answers nothing.
   function dev.answer()
     local replies = {}
+    if dev.down then
+      dev.sent = {}
+      return replies
+    end
     for _, f in ipairs(dev.sent) do
       local t, p = f[1], f[2]
       if t == 0x28 then

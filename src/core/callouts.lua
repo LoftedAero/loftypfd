@@ -167,6 +167,15 @@ local function message(self, msg, now, out)
   if tune == "success" or tune == "failed" then
     return emit(out, "autotune", { "autotune-" .. tune })
   end
+  -- Plane's autotune switch starts it in the mode flown, which no mode
+  -- callout says; entering AUTOTUNE mode sends the same text, and there the
+  -- mode's callout has said it.
+  if l == "started autotune" then
+    if vehicle.modeName(self.state) ~= "AutoTune" then
+      emit(out, "autotune", { "autotune-started" })
+    end
+    return
+  end
   -- Plane's autotune reports each axis as it finishes, and its gains
   -- ("RollD: 0.0123") at error severity on the way.
   local axis = match(l, "^(%a+):%s*finished")

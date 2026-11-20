@@ -180,6 +180,33 @@ T.case("a command runs, polls and is canceled", function()
   T.eq(client.devices[FC].running, nil, "not running")
 end)
 
+-- The gyro restarts 1.5 s after a calibration's "Done, restarting", which
+-- waits for OK, and after its GPS setting changes: requests go unanswered
+-- for a few seconds, then the device answers as it was after power-up.
+T.case("a device that restarts is asked again until it answers", function()
+  local dev, client, now = found()
+  client:load(FC)
+  now = run(client, dev, now)
+  client:command(FC, 7, devices.COMMAND.start)
+  now = run(client, dev, now, 2)
+  client:handle(0x2B, fake.chunkFrame(7, command(0, "Check mode switch", 3, "Done, restarting"), 0), now)
+  T.eq(client.devices[FC].entries[7].status, devices.COMMAND.confirmationNeeded, "asks for OK")
+  dev.down = true
+  client:command(FC, 7, devices.COMMAND.confirm)
+  now = run(client, dev, now, 40)
+  T.eq(client.devices[FC].running, 7, "still waiting through the restart")
+  dev.down = false
+  dev.entries[7] = command(0, "Check mode switch", 0, "")
+  dev.entries[1] = fake.info(0, "Status", "DISARMED MANUAL GPS 3D fix")
+  now = run(client, dev, now, 20)
+  T.eq(client.devices[FC].entries[7].status, devices.COMMAND.ready, "the command is idle after the restart")
+  T.eq(client.devices[FC].running, nil, "so its dialog closes")
+  -- The browser reads the open folder again once a dialog closes.
+  client:open(FC, 0)
+  run(client, dev, now)
+  T.eq(client.devices[FC].entries[1].value, "DISARMED MANUAL GPS 3D fix", "readings as after the restart")
+end)
+
 T.case("encodes writes by type", function()
   T.eq(#devices.encodeValue({ type = 8 }, -5), 4, "float is four bytes")
   local b = devices.encodeValue({ type = 8 }, -5)

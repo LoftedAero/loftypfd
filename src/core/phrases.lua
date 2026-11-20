@@ -35,6 +35,7 @@ M.CLIPS = {
   ["mission-complete"] = "Mission complete",
   ["transition-done"] = "Transition done",
   ["transition-failed"] = "Transition failed",
+  ["autotune-started"] = "Autotune started",
   ["autotune-success"] = "Autotune success",
   ["autotune-failed"] = "Autotune failed",
   ["tune-roll-done"] = "Roll autotune finished",

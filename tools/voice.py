@@ -49,11 +49,14 @@ PIPER_VOICES = {
         "json": "f89b01c5e483c75ce9085ff89c79446c1a95a1cb4a362f629dac3b5a4b5dde75",
     },
 }
-# What Piper says badly, respelled. It reads a lone capital A as the
-# article ("uh"), where the phrases mean the letter. "Fly by wire" as three
-# words sounded robotic, and run together it guesses "bih" for "by";
+# What Piper says badly, respelled, in order. It reads a lone capital A as
+# the article ("uh"), where the phrases mean the letter. "Fly by wire" as
+# three words sounded robotic, and run together it guesses "bih" for "by";
 # "fly-bye-wire" is one word with each syllable full (Eric's pick of eight).
+# Before the letter A it linked an R ("wire-ray"); commas set the letter
+# apart (Eric's pick of eight, 2026-11-19).
 PIPER_RESPELL = [
+    (re.compile(r"\bFly by wire A\b"), "Fly-bye-wire, eigh,"),
     (re.compile(r"\bA\b"), "eh"),
     (re.compile(r"\bFly by wire\b"), "Fly-bye-wire"),
 ]
@@ -116,8 +119,7 @@ def piper(texts, name):
     voice = PiperVoice.load(str(model))
     out = []
     for text in texts:
-        for pattern, spelled in PIPER_RESPELL:
-            text = pattern.sub(spelled, text)
+        text = respell(text)[0]
         buf = io.BytesIO()
         with wave.open(buf, "wb") as w:
             voice.synthesize_wav(text, w)
@@ -178,11 +180,22 @@ def radio_clip(samples, rate):
     return buf.getvalue()
 
 
-def voice_id(voice):
-    """The voice as the index records it: for Piper, with a fingerprint of
-    the respellings, so changing one makes the clips again."""
+def respell(text):
+    """The text as Piper is given it, and the respellings that changed it."""
+    used = []
+    for pattern, spelled in PIPER_RESPELL:
+        if pattern.search(text):
+            used.append((pattern.pattern, spelled))
+            text = pattern.sub(spelled, text)
+    return text, used
+
+
+def voice_id(voice, words):
+    """The voice a clip is made in, as the index records it: for Piper, with
+    a fingerprint of the respellings that change its words, so changing one
+    makes only those clips again."""
     if voice.startswith("piper:"):
-        table = repr([(p.pattern, s) for p, s in PIPER_RESPELL])
+        table = repr(respell(words)[1])
         return voice + "+" + hashlib.sha256(table.encode()).hexdigest()[:8]
     return voice
 
@@ -207,9 +220,8 @@ def main():
     want = phrases()
     index = read_index()
     voice = args.voice or DEFAULT_VOICE
-    vid = voice_id(voice)
     todo = [n for n, w in sorted(want.items())
-            if args.all or index.get(n) != (vid, w) or not (OUT / (n + ".wav")).exists()]
+            if args.all or index.get(n) != (voice_id(voice, w), w) or not (OUT / (n + ".wav")).exists()]
     stale = [n for n in index if n not in want]
     for n in stale:
         (OUT / (n + ".wav")).unlink(missing_ok=True)
@@ -217,7 +229,7 @@ def main():
     if todo:
         for n, (samples, rate) in zip(todo, speak([want[n] for n in todo], voice)):
             (OUT / (n + ".wav")).write_bytes(radio_clip(samples, rate))
-            index[n] = (vid, want[n])
+            index[n] = (voice_id(voice, want[n]), want[n])
     write_index(index)
     print("made %d clips, removed %d, %d in all (%s)" % (len(todo), len(stale), len(index), voice))
 

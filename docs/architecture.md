@@ -141,13 +141,14 @@ hidden), name, then a value whose layout depends on the type. Long entries span 
 (ArduPilot: 55 bytes, the parent only in the first).
 
 - **While a menu loads, telemetry waits.** While disarmed, any pending menu read puts
-  ArduPilot in a "params mode" that turns off every telemetry frame until 5 s after the
-  last read (`AP_CRSF_Telem::adjust_packet_weight`); armed, it never enters it. Measured in
-  gyro SITL (2026-11-13, when it had 91 entries): reading all of them took 8 s and stopped
-  GPS, battery, attitude and flight mode for 13 s; opening the device now stops them for
-  5.5 s (0.5 s of reads), and each folder for 5.2-6 s. ArduPilot's answer to a ping does not start the
-  mode but restarts its 5 s while it is on. So, disarmed, readings are not refreshed and
-  the device list pings every 6 s (see "The device browser").
+  ArduPilot in a "params mode" that turns off every telemetry frame
+  (`AP_CRSF_Telem::adjust_packet_weight`); armed, it never enters it. Stock ArduPilot keeps
+  it 5 s, which opening the device or a folder turned into 5.2-6 s of silence, and the
+  radio announced each silent sensor as lost. The StabRX firmware ends it 0.5 s after the
+  reads (`AP_CRSF_PARAMS_MODE_TIMEOUT_MS`, StabRX-2026-11-19): in its SITL, opening the
+  device read the top level in 0.5 s and stopped attitude for 1.0 s. ArduPilot's answer to
+  a ping does not start the mode. Since stock boards keep 5 s, disarmed readings are not
+  refreshed and the device list pings every 6 s (see "The device browser").
 - **A folder is read when it opens.** A read of entry 0 is answered with a root folder
   (the gyro: parent 0, type 11, "root", its eight top-level ids, 0xFF), so opening a device
   reads entry 0 and the entries it lists; opening a folder reads the entries it lists,
@@ -211,24 +212,39 @@ card of rows, label left and the control in one column on the right.
 
 ## The gyro
 
-Lofted Aero's gyro firmware (WSL `~/ardupilot-gyro`, `GYRO_README.md`) is a stripped
-ArduPlane that serves its whole setup menu over CRSF as device 0xC8, named "Stabilization"
-("Gyro" before menu version 3; the ExpressLRS script shows "[Stabilization]"). Its status
-texts start "StabRX:" ("Gyro:" before). Nothing here compares the name. Its SITL build
-(`build/sitl/bin/arduplane`, built with `--extra-hwdef=Tools/gyro/sitl-gyro.hwdef`) serves
-the same menu, which is what `tests/sitl_test.py` drives.
+Lofted Aero's StabRX firmware (WSL `~/ardupilot-gyro`, `STABRX_README.md`; the menu is
+`ArduPlane/stabrx_menu.cpp`, its parameters `STABRX_*`) is a stripped ArduPlane that serves
+its whole setup menu over CRSF as device 0xC8, named "Stabilization" ("Gyro" before menu
+version 3; the ExpressLRS script shows "[Stabilization]"). Its status texts start "StabRX:"
+("Gyro:" before). Nothing here compares the name. Its SITL build
+(`build/sitl/bin/arduplane`, built with `--extra-hwdef=Tools/stabrx/sitl-stabrx.hwdef`)
+serves the same menu, which is what `tests/sitl_test.py` drives. Releases are tagged
+`StabRX-<date>` on LoftedAero/ardupilot.
 
 - **Menu version** is the hidden info entry last in Tools, which says which layout a board
   serves; Gyro Setup is to key its screens on it and on folder paths, never on ids. "2" is
   the builds of 2026-11-13 and 2026-11-14: the second already had a "7 Speeds" folder and a
-  yaw gain, so no gain, yaw or speed entry is relied on for "2". "3" is 2026-11-14b on.
-- **Layout 3:** 108 entries (89 settings, 19 folders). The top level is Status, 1
-  Calibration, 2 Radio, 3 Flight modes, 4 Outputs, 5 Failsafe, 6 Tuning and Tools (ids 1,
-  2, 7, 19, 24, 75, 79, 105 in SITL). 6 Tuning holds the gain knob's range, the FBWA limits
-  and the autotune level, then four folders: Speeds (cruise, min, max), Roll gains and Pitch
-  gains (FF, P, I, D, the ACRO rate), Yaw gains (yaw damper, rudder mix). The RTL switch and
-  RTL altitude are hidden without a GPS (status NO_GPS; a GPS without a fix counts), and an
-  "RTL" reading saying "needs a GPS" shows instead.
+  yaw gain, so no gain, yaw or speed entry is relied on for "2". "3" is 2026-11-14b on, "4"
+  StabRX-2026-11-19 on.
+- **Layout 4:** 109 entries (90 settings, 19 folders). The top level is Status, 1 Sensors,
+  2 Radio, 3 Flight modes, 4 Outputs, 5 Failsafe, 6 Tuning and Tools (ids 1, 2, 8, 20, 25,
+  76, 80, 106 in SITL). 1 Sensors (layout 3's "1 Calibration") holds Orientation, Detect
+  orientation, Calibrate accel, Calibrate level and GPS (Off, On); "Calibrate gyros" is
+  gone, since the gyros calibrate at each power-up. 5 Failsafe holds Link loss, RTL
+  altitude and a hidden "RTL" reading. 6 Tuning holds the gain knob's range, the FBWA
+  limits and the autotune level, then four folders: Speeds (cruise, min, max), Roll gains
+  and Pitch gains (FF, P, I, D, the ACRO rate), Yaw gains (yaw damper, rudder mix). Layout 3
+  had 108 entries, with "1 Calibration" (ids 1, 2, 7, 19, 24, 75, 79, 105).
+- **It restarts itself** 1.5 s after "Calibrate accel" reports "Done, restarting" (which
+  waits for OK) and after the GPS setting changes (its read-back first, then
+  "StabRX: GPS on, restarting"). Nothing in the client is special to it: a request goes
+  unanswered and is asked again each second until the board is back, a command then reads
+  idle and its dialog closes, and folders are read again as they open.
+- **A learn on a channel in use asks** "Ch8 is the Gain knob. Replace?"; OK moves the
+  channel at the save ("Arm switch: Ch8 (was Gain knob)"), and a cancel leaves both as
+  they were. A channel chosen in a setting's own row is still refused while in use.
+- **Autotune** tunes roll, pitch and yaw ("Autotuning roll pitch yaw", then "Yaw: Finished"),
+  and the yaw result becomes the yaw damper ("StabRX: yaw damper 0.050").
 - **Decimals:** at most 3, since the ExpressLRS script caps a float's precision at 3 but
   still divides by 10^3. The client shows as many as the entry says.
 - **Telemetry:** the Kakute and Lucid defaults set RC_OPTIONS 4192 (bit 12, the disarmed
@@ -412,10 +428,15 @@ vibrate. A row that is off is not built at all, since the one setting cannot tur
   open-source neural voice that runs offline. It was trained on recordings licensed CC BY
   4.0, so `src/audio/en/CREDITS.txt` and the README credit them. Its model comes from a
   fixed revision, checked by its hash. Some words are respelled for Piper (`PIPER_RESPELL`),
-  and the index records a fingerprint of those, so changing one remakes the clips. Piper reads
+  and the index records for each clip a fingerprint of the respellings that changed its
+  words, so changing one remakes only those clips: Piper speaks a little differently each
+  run, and a clip once picked by ear stays as it was. Piper reads
   a lone capital "A" as the article ("uh"), so it is given "eh", the letter. "Fly by wire"
   sounded robotic as three words, and run together as one unknown word Piper guessed "bih"
-  for "by"; "Fly-bye-wire" is one word with each syllable full (Eric's pick of eight). Numbers are the radio's own (`playNumber`), in its language. A message
+  for "by"; "Fly-bye-wire" is one word with each syllable full (Eric's pick of eight).
+  Before the letter it linked an R ("wire-ray"), so FBWA is "Fly-bye-wire, eigh, mode", the
+  commas setting the letter apart (Eric's pick of eight, 2026-11-19; the clip is the one he
+  heard). Numbers are the radio's own (`playNumber`), in its language. A message
   from the aircraft is spoken only where a clip says it, else it gets its row's tone.
   `tools/test.py` fails when a phrase has no clip or its clip says other words.
 - **Plain CRSF carries no messages, fix type or failsafe flags,** so over it only the mode,
@@ -423,7 +444,10 @@ vibrate. A row that is off is not built at all, since the one setting cannot tur
 - **ArduPilot's own words decide the matching.** Plane's autotune reports each axis
   ("Roll: Finished") and its gains ("RollD: 0.0123") at error severity, so the gains are
   ignored and the axis is said, rather than an error tone each time; Copter's is
-  "AutoTune: Success". The battery is "Battery 1 is low 10.50V used 1200 mAh" at warning
+  "AutoTune: Success". Plane's autotune switch starts it inside the mode flown, which no
+  mode callout says, so "Started autotune" is said as "Autotune started" (Eric's request);
+  entering AUTOTUNE mode sends the same text, and there the mode's callout has said it.
+  Stopping is the pilot's own switch and is quiet. The battery is "Battery 1 is low 10.50V used 1200 mAh" at warning
   severity. Plane's failsafes are "RC Short Failsafe On", "RC Long Failsafe On: switched to
   RTL", "GCS Failsafe On", and "... Cleared" when they end.
 - **Two settings.** Voice callouts: All, Alerts only (information left out) or Off. Warning
